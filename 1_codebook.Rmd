@@ -1,0 +1,44 @@
+---
+title: "Codebook"
+author: "Ruben Arslan"
+date: "3/13/2019"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+```{r setup, warning=FALSE, message = FALSE}
+library(labelled)
+library(codebook)
+library(tidyverse)
+knitr::opts_chunk$set(
+  warning = TRUE, # show warnings during codebook generation
+  message = TRUE, # show messages during codebook generation
+  error = TRUE, # do not interrupt codebook generation in case of errors,
+                # usually makes debugging easier, and sometimes half a codebook
+                # is better than none
+  echo = FALSE  # don't show the R code
+)
+ggplot2::theme_set(ggplot2::theme_bw())
+pander::panderOptions("table.split.table", Inf)
+```
+
+## Load data
+
+```{r}
+vcs <- rio::import("simulated_data_080319.xlsx")
+var_label(vcs$dominance) <- "Dominance"
+var_label(vcs$f0) <- "Voice pitch"
+var_label(vcs$sex) <- "Male sex"
+set.seed(1)
+var_label(vcs$age) <- "Age"
+```
+
+```{r}
+codebook(vcs)
+```
+
