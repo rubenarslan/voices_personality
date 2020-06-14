@@ -97,8 +97,8 @@ h1_simple <- brm(dominance ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), da
           prior = priors,
           control = control, save_mevars = TRUE,
           file = "models/dominance/h1_simple") %>% 
-  add_ic("loo") %>% 
-  add_ic("R2")
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
 
 
 h1_after_diagnosis <- brm(dominance ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset), data = vcs,
@@ -106,8 +106,8 @@ h1_after_diagnosis <- brm(dominance ~ s(f0, by = sex) + sex + me(age, age_se) + 
           prior = priors,
           control = control, save_mevars = TRUE,
           file = "models/dominance/h1_nonlinear") %>% 
-  add_ic("loo") %>% 
-  add_ic("R2")
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
 marginal_smooths(h1_after_diagnosis)
 
 h1_sex_mod_dataset_varying <- brm(dominance ~ f0 + pf + f0 * sex + me(age, age_se) + 
@@ -116,14 +116,25 @@ h1_sex_mod_dataset_varying <- brm(dominance ~ f0 + pf + f0 * sex + me(age, age_s
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
           file = "models/dominance/h1_sex_mod_dataset_varying") %>% 
-  add_ic("loo") %>% 
-  add_ic("R2")
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
 
-compare_models <- loo(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying)
+h1_after_diagnosis_melsm <- brm(
+  bf(dominance ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset),
+     sigma ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset)), data = vcs,
+          prior = priors,
+          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
+          control = control, save_mevars = TRUE,
+          file = "models/dominance/h1_after_diagnosis_melsm") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
+
+compare_models <- loo(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying,
+                      h1_after_diagnosis_melsm)
 compare_models
 # loo_model_weights(compare_models[1:3])
 
-sjPlot::tab_model(h1_simple, show.hdi50 = FALSE, bpe = "mean",
+sjPlot::tab_model(h1_simple, bpe = "mean",
                   terms = c("Intercept", "f0", "pf", "sex", "bsp_meageage_se"))
 equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
 equiv_test
@@ -137,6 +148,7 @@ summary(h1_after_diagnosis)
 marginal_effects(h1_after_diagnosis)
 marginal_smooths(h1_after_diagnosis)
 summary(h1_sex_mod_dataset_varying)
+summary(h1_after_diagnosis_melsm)
 ```
 
 </details>
