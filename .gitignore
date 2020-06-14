@@ -6,3 +6,5 @@ models
 data
 *.csv
 *.rds
+*.xlsx
+*.docx
