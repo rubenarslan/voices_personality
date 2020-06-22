@@ -16,8 +16,8 @@ library(labelled)
 library(codebook)
 library(tidyverse)
 knitr::opts_chunk$set(
-  warning = TRUE, # show warnings during codebook generation
-  message = TRUE, # show messages during codebook generation
+  warning = FALSE, # show warnings during codebook generation
+  message = FALSE, # show messages during codebook generation
   error = TRUE, # do not interrupt codebook generation in case of errors,
                 # usually makes debugging easier, and sometimes half a codebook
                 # is better than none
@@ -29,15 +29,154 @@ ggplot2::theme_set(ggplot2::theme_bw())
 ## Load data
 
 ```{r}
-vcs <- rio::import("simulated_data_080319.xlsx")
+vcs <- rio::import("data_complete_all_anonym_allZ.xlsx")
 var_label(vcs$dominance) <- "Dominance"
+var_label(vcs$neuro) <- "Neuroticism"
+var_label(vcs$agree) <- "Agreeableness"
+var_label(vcs$extra) <- "Extraversion"
+var_label(vcs$openn) <- "Openness"
+var_label(vcs$consc) <- "Conscientiousness"
+var_label(vcs$soi_full) <- "Unrestricted sociosexuality"
 var_label(vcs$f0) <- "Voice pitch"
-var_label(vcs$sex) <- "Male sex"
+var_label(vcs$pf) <- "Formants"
+vcs$sex_c <- vcs$sex
+vcs$sex <- haven::labelled(vcs$sex_c, labels = c("male" = 1, "female" = -1),
+                          label = "Sex")
 set.seed(1)
 var_label(vcs$age) <- "Age"
 ```
 
+## Codebook
+
 ```{r}
 codebook(vcs)
+```
+
+## Gender differences
+```{r}
+library(ggstatsplot)
+vcs$sex <- factor(if_else(vcs$sex_c == 1, "male", "female"))
+contrasts(vcs$sex) <- contr.helmert(2)
+var_label(vcs$sex) <- "Sex"
+ggbetweenstats(vcs, sex, age) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, f0) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, pf) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, dominance) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, extra) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, neuro) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, consc) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, agree) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, openn) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, soi_full) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+
+ggplot(vcs, aes(f0, fill = sex)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggplot(vcs, aes(pf, fill = sex)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+
+ggplot(vcs, aes(f0, fill = factor(dataset))) + 
+  geom_histogram(position = "stack", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(pf, fill = factor(dataset))) + 
+  geom_histogram(position = "stack", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(pf, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f1, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f2, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f3, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f4, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(pf, fill = factor(dataset))) + 
+  geom_histogram(position = "stack", alpha = 0.4)+
+  facet_wrap(~ sex) +
+  scale_fill_viridis_d()
+```
+
+## Age trends
+```{r}
+ggscatterstats(vcs, age, f0)
+```
+
+
+```{r}
+ggscatterstats(vcs, age, pf)
+```
+
+
+```{r}
+ggscatterstats(vcs, age, dominance)
+```
+
+
+```{r}
+ggscatterstats(vcs, age, extra)
+```
+
+
+```{r}
+ggscatterstats(vcs, age, neuro)
+```
+
+```{r}
+ggscatterstats(vcs, age, consc)
+```
+
+```{r}
+ggscatterstats(vcs, age, agree)
+```
+
+```{r}
+ggscatterstats(vcs, age, openn)
+```
+
+```{r}
+ggscatterstats(vcs, age, soi_full)
+```
+
+```{r}
+ggscatterstats(vcs, age, behavior)
+```
+
+
+## Correlations
+```{r}
+vcs %>% select(sex_c, age, pf, f0:f4) %>%  cor(use = 'pairwise') %>% round(2)
+vcs %>% select(sex_c, age, neuro:soi_full) %>%  cor(use = 'pairwise') %>% round(2)
+vcs %>% select( sex_c, everything(), -voice_id, -dataset, -sex) %>%  cor(use = 'pairwise') %>% round(2)
 ```
 
