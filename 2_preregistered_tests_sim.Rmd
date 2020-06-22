@@ -1,0 +1,165 @@
+---
+title: "Preregistered analysis"
+author: "Ruben Arslan"
+date: "3/5/2019"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+theme_set(theme_bw())
+```
+
+## Load data
+
+```{r}
+vcs <- rio::import("simulated_data_080319.xlsx")
+var_label(vcs$dominance) <- "Dominance"
+var_label(vcs$f0) <- "Voice pitch"
+var_label(vcs$pf) <- "Formants"
+vcs$sex_c <- vcs$sex
+vcs$sex <- factor(if_else(vcs$sex == 1, "male", "female"))
+contrasts(vcs$sex) <- contr.helmert(2)
+var_label(vcs$sex) <- "Sex"
+set.seed(1)
+var_label(vcs$age) <- "Age"
+vcs <- vcs %>% 
+  mutate(
+    age_se = if_else(dataset == 9, 3, 0.5)
+  )
+warmup <- 2000
+iter <- warmup + 2000
+chains <- 4
+control <- list(adapt_delta = 0.99)
+priors <- c(
+  prior(normal(0, 3), class = b)
+)
+```
+
+## Missingness patterns
+```{r}
+codebook::md_pattern(vcs %>% select(dominance, sex, age, f0, dataset))
+```
+
+
+## Hypothesis 1: 
+
+### Simulate fake effect on dominance
+```{r}
+set.seed(1)
+vcs <- vcs %>% mutate(
+  f0 = 0.3 * rnorm(n()) + -0.3 * sex_c + rnorm(n()),
+  dominance = 0.4 * sex_c + -0.4 * f0 + -0.1 * if_else(sex_c == 1, 1, 0) * (f0-1)^2 + 0.95 * rnorm(n())
+)
+var_label(vcs$dominance) <- "Dominance"
+```
+
+Participants with lower voice pitch will have a more dominant personality.
+
+### Visually diagnose non-linearity
+```{r}
+ggplot(vcs, aes(f0, dominance)) + 
+  geom_jitter(aes(colour = factor(sex)), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = factor(sex), fill = factor(sex)), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) +
+  scale_fill_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+
+ggplot(vcs, aes(pf, dominance)) + 
+  geom_jitter(aes(colour = factor(sex)), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = factor(sex), fill = factor(sex)), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) +
+  scale_fill_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+
+ggplot(vcs, aes(age, dominance)) + 
+  geom_jitter(aes(colour = factor(sex)), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = factor(sex), fill = factor(sex)), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) +
+  scale_fill_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+```
+
+
+### Models
+```{r}
+h1_simple <- brm(dominance ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, cores = chains, chains = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE,
+          file = "models/sim_dominance/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
+
+
+h1_after_diagnosis <- brm(dominance ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, cores = chains, chains = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE,
+          file = "models/sim_dominance/h1_nonlinear") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
+marginal_smooths(h1_after_diagnosis)
+
+h1_sex_mod_dataset_varying <- brm(dominance ~ f0 + pf + f0 * sex + me(age, age_se) + 
+                                    (1 + f0 * sex || dataset), data = vcs,
+          prior = priors,
+          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
+          control = control, save_mevars = TRUE,
+          file = "models/sim_dominance/h1_sex_mod_dataset_varying") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
+
+h1_after_diagnosis_melsm <- brm(
+  bf(dominance ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset),
+     sigma ~ s(f0, by = sex) + sex + me(age, age_se) + (1 | dataset)), data = vcs,
+          prior = priors,
+          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
+          control = control, save_mevars = TRUE,
+          file = "models/sim_dominance/h1_after_diagnosis_melsm") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2")
+
+compare_models <- loo(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying,
+                      h1_after_diagnosis_melsm)
+compare_models
+# loo_model_weights(compare_models[1:3])
+
+sjPlot::tab_model(h1_simple, bpe = "mean",
+                  terms = c("Intercept", "f0", "pf", "sex", "bsp_meageage_se"))
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_after_diagnosis)
+marginal_effects(h1_after_diagnosis)
+marginal_smooths(h1_after_diagnosis)
+summary(h1_sex_mod_dataset_varying)
+summary(h1_after_diagnosis_melsm)
+```
+
+</details>
+
+
+## Hypothesis 2: 
+Participants with lower voice pitch will score higher on agreeableness.
+
+## Hypothesis 3: 
+Participants with lower voice pitch will score lower on neuroticism.
+
+## Hypothesis 4: 
+Participants with lower voice pitch will report having a more unrestricted sociosexuality.
+
