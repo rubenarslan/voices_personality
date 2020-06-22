@@ -137,10 +137,17 @@
     },
     "StanHeaders": {
       "Package": "StanHeaders",
-      "Version": "2.21.0-3",
+      "Version": "2.21.0-5",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "cd5b1cb32098f03b5d1c7bd43d48d6b8"
+      "Hash": "61b35986173e46a61d26252d1429a6bd"
+    },
+    "V8": {
+      "Package": "V8",
+      "Version": "3.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e4a46d2f34fe0de3a88d5aaf79d81a17"
     },
     "VGAM": {
       "Package": "VGAM",
@@ -592,10 +599,10 @@
     },
     "httpuv": {
       "Package": "httpuv",
-      "Version": "1.5.3.1",
+      "Version": "1.5.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6c977bbfd872e34f1415ebbd9cfc9dda"
+      "Hash": "4e6dabb220b006ccdc3b3b5ff993b205"
     },
     "httr": {
       "Package": "httr",
@@ -676,10 +683,10 @@
     },
     "later": {
       "Package": "later",
-      "Version": "1.0.0",
+      "Version": "1.1.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6d927978fc658d24175ce37db635f9e5"
+      "Hash": "d0a62b247165aabf397fded504660d8a"
     },
     "lattice": {
       "Package": "lattice",
@@ -739,10 +746,10 @@
     },
     "lubridate": {
       "Package": "lubridate",
-      "Version": "1.7.8",
+      "Version": "1.7.9",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6c04c31012c1be39783bebbbfc27b3a3"
+      "Hash": "fc1c91e2e8d9e1fc932e75aa1ed989b7"
     },
     "magrittr": {
       "Package": "magrittr",
@@ -914,10 +921,10 @@
     },
     "performance": {
       "Package": "performance",
-      "Version": "0.4.6",
+      "Version": "0.4.7",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "d1d4609ebe4537ec65a58bc4d0800b25"
+      "Hash": "3cfc502028c76149a04a3d3d9569d950"
     },
     "pillar": {
       "Package": "pillar",
@@ -991,10 +998,10 @@
     },
     "promises": {
       "Package": "promises",
-      "Version": "1.1.0",
+      "Version": "1.1.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "efbbe62da4709f7040a380c702bc7103"
+      "Hash": "a8730dcbdd19f9047774909f0ec214a4"
     },
     "ps": {
       "Package": "ps",
@@ -1138,10 +1145,16 @@
     },
     "rstan": {
       "Package": "rstan",
-      "Version": "2.19.3",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "73129bed7783ff433c190b5fce836959"
+      "Version": "2.21.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "rstan",
+      "RemoteUsername": "stan-dev",
+      "RemoteRef": "develop",
+      "RemoteSha": "f083ce630fe246cd8af35351b6d29eaf84f22bc8",
+      "RemoteSubdir": "rstan/rstan",
+      "Hash": "48d0d3ae7c827ea1fac1ddbadd742c08"
     },
     "rstantools": {
       "Package": "rstantools",
@@ -1285,10 +1298,10 @@
     },
     "survival": {
       "Package": "survival",
-      "Version": "3.1-12",
+      "Version": "3.2-3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "1c5bb53bd428f3c42a25b7aeb983d8c7"
+      "Hash": "3cc6154c577a82f06250254db30a4bfb"
     },
     "sys": {
       "Package": "sys",
