@@ -1,0 +1,561 @@
+---
+title: "Preregistered analysis"
+author: "Ruben Arslan"
+date: "3/5/2019"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: "hide"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+theme_set(theme_bw())
+```
+
+## Load data
+
+```{r}
+vcs <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
+var_label(vcs$dominance) <- "Dominance"
+var_label(vcs$neuro) <- "Neuroticism"
+var_label(vcs$agree) <- "Agreeableness"
+var_label(vcs$extra) <- "Extraversion"
+var_label(vcs$openn) <- "Openness"
+var_label(vcs$consc) <- "Conscientiousness"
+var_label(vcs$soi_full) <- "Unrestricted sociosexuality"
+var_label(vcs$f0) <- "Voice pitch"
+var_label(vcs$pf) <- "Formants"
+vcs$sex_c <- vcs$sex
+vcs$sex <- factor(if_else(vcs$sex == 1, "male", "female"))
+contrasts(vcs$sex) <- contr.helmert(2)
+var_label(vcs$sex) <- "Sex"
+set.seed(1)
+var_label(vcs$age) <- "Age"
+vcs <- vcs %>% 
+  mutate(
+    age = if_else(dataset == 9, 20, age)/10,
+    age_se = if_else(dataset == 9, 3, 0.5)/10
+  )
+warmup <- 2000
+iter <- warmup + 2000
+chains <- 4
+control <- list(adapt_delta = 0.99)
+priors <- c(
+  prior(normal(0, 3), class = b)
+)
+
+variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = "Formants (f1-f4)", "age" = "Age")
+effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = "Formants (f1-f4)", "b_age" = "Age")
+
+```
+
+## Missingness patterns
+```{r}
+codebook::md_pattern(vcs %>% select(dominance, neuro, agree, soi_full, sex, age, f0, pf, dataset))
+vcs <- vcs %>% filter(!is.na(f0), !is.na(pf), !is.na(age))
+```
+
+
+## Extraversion
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ 
+
+
+### Models
+```{r}
+h0 <- brm(extra ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/extra/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(extra ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/extra/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
+
+
+## Openness
+
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, openn)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, openn)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, openn)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ 
+
+### Models
+```{r}
+h0 <- brm(openn ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/openn/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(openn ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/openn/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
+
+
+
+## Conscientiousness
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, consc)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, consc)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, consc)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ 
+
+
+### Models
+```{r}
+h0 <- brm(consc ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/consc/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(consc ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/consc/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
+
+
+## SOI Desire
+
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, desire)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, desire)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, desire)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ Visual diagnostic show no clear sign of nonlinearities. 
+We will fit linear effects for f0, pf, and age. It is not necessary to model measurement error
+in age, as dataset 9 (where age was not noted individually) is not included in these analyses.
+Visually, there could be an interaction between sex and f0. 
+
+
+### Models
+```{r}
+h0 <- brm(desire ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/desire/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(desire ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/desire/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
+
+## SOI Attitude
+
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, attitude)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, attitude)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, attitude)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ Visual diagnostic show no clear sign of nonlinearities. 
+We will fit linear effects for f0, pf, and age. It is not necessary to model measurement error
+in age, as dataset 9 (where age was not noted individually) is not included in these analyses.
+Visually, there could be an interaction between sex and f0. 
+
+
+### Models
+```{r}
+h0 <- brm(attitude ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/attitude/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(attitude ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/attitude/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
+
+## SOI Behavior
+
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, behavior)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, behavior)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, behavior)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ Visual diagnostic show no clear sign of nonlinearities. 
+We will fit linear effects for f0, pf, and age. It is not necessary to model measurement error
+in age, as dataset 9 (where age was not noted individually) is not included in these analyses.
+Visually, there could be an interaction between sex and f0. 
+
+
+### Models
+```{r}
+h0 <- brm(behavior ~ sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/behavior/h0") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/behavior/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+compare_models <- loo_compare(h0, h1_simple)
+compare_models
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+conditional_effects(h1_simple)
+# conditional_smooths(h1_after_diagnosis)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+</details>
