@@ -559,3 +559,53 @@ plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), lab
 ```
 
 </details>
+
+
+
+## Summary of results
+```{r}
+openn <- readRDS("models/openn/h1_simple.rds")
+extra <- readRDS("models/extra/h1_simple.rds")
+consc <- readRDS("models/consc/h1_simple.rds")
+behavior <- readRDS("models/behavior/h1_simple.rds")
+desire <- readRDS("models/desire/h1_simple.rds")
+attitude <- readRDS("models/attitude/h1_simple.rds")
+library(cowplot)
+theme_set(theme_cowplot())
+
+modify <- function(outcome) {
+  list(scale_y_discrete(outcome, breaks = names(effect_labels), labels = effect_labels),
+  guides(fill = "none"),
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
+)
+}
+remove_x_axis <- list(
+  scale_x_continuous("", limits = c(-0.5, 0.4)),
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.line.x = element_blank())
+)
+
+p_extra <- plot(equivalence_test(extra, parameters = c("b_f0", "b_pf", "b_sex1"))) + modify("Extraversion") + remove_x_axis
+p_openn <- plot(equivalence_test(openn, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("Openness") + remove_x_axis
+p_consc <- plot(equivalence_test(consc, parameters = c("b_f0", "b_pf", "b_sex1")))  +
+  modify("Conscientiousness") + remove_x_axis
+p_attitude <- plot(equivalence_test(attitude, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("SOI behavior") + remove_x_axis
+p_desire <- plot(equivalence_test(desire, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("SOI desire") + remove_x_axis
+p_behavior <- plot(equivalence_test(behavior, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("SOI behavior") + xlim(c(-0.5, 0.4))
+legend <- get_legend(
+  p_extra + 
+    guides(fill = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom", legend.justification = "center")
+)
+
+neg_spacer <- -0.155
+plot_grid(ncol = 1,  rel_heights = c(1, neg_spacer, 1, neg_spacer, 1,neg_spacer, 1,neg_spacer, 1, neg_spacer, 1.1, .15), align = "v", axis = "b",
+          p_extra, NULL, p_openn,NULL, p_consc,NULL, p_attitude, NULL, p_desire, NULL, p_behavior, legend)
+ggsave("exploratory_rope.pdf", width = 8, height = 10)
+```

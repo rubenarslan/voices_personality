@@ -576,3 +576,47 @@ kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated as
 
 </details>
 
+
+
+## Summary of results
+```{r}
+dominance <- readRDS("models/dominance/h1_simple.rds")
+agree <- readRDS("models/agree/h1_simple.rds")
+neuro <- readRDS("models/neuro/h1_simple.rds")
+soi <- readRDS("models/soi_full/h1_simple.rds")
+library(cowplot)
+theme_set(theme_cowplot())
+
+modify <- function(outcome) {
+  list(scale_y_discrete(outcome, breaks = names(effect_labels), labels = effect_labels),
+  guides(fill = "none"),
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
+)
+}
+remove_x_axis <- list(
+  scale_x_continuous("", limits = c(-0.5, 0.4)),
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.line.x = element_blank())
+)
+
+p_dominance <- plot(equivalence_test(dominance, parameters = c("b_f0", "b_pf", "b_sex1"))) + modify("Dominance") + remove_x_axis
+p_agree <- plot(equivalence_test(agree, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("Agreeableness") + remove_x_axis
+p_neuro <- plot(equivalence_test(neuro, parameters = c("b_f0", "b_pf", "b_sex1")))  +
+  modify("Neuroticism") + remove_x_axis
+p_soi <- plot(equivalence_test(soi, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+  modify("Sociosexuality") + xlim(c(-0.5, 0.4))
+legend <- get_legend(
+  p_dominance + 
+    guides(fill = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom", legend.justification = "center")
+)
+
+neg_spacer <- -0.11
+plot_grid(ncol = 1,  rel_heights = c(1, neg_spacer, 1, neg_spacer, 1, neg_spacer, 1.1, .15), align = "v", axis = "b",
+          p_dominance, NULL, p_agree,NULL, p_neuro,NULL, p_soi, legend)
+ggsave("preregistered_rope.pdf", width = 8, height = 10)
+```
+
