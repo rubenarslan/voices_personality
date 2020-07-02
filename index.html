@@ -381,75 +381,17 @@ summary {
 <p>This repository uses the <a href="https://rstudio.github.io/renv/">renv</a> package to make it easier to rerun analyses using the same setup and package versions that were used to create them.</p>
 <details>
 <p><summary>Here’s a classical session info.</summary></p>
-<pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
-<pre><code>## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-## ✓ tibble  3.0.1     ✓ dplyr   1.0.0
-## ✓ tidyr   1.1.0     ✓ stringr 1.4.0
-## ✓ readr   1.3.1     ✓ forcats 0.5.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(knitr)
-library(brms)</code></pre>
-<pre><code>## Loading required package: Rcpp</code></pre>
-<pre><code>## Loading &#39;brms&#39; package (version 2.13.0). Useful instructions
-## can be found by typing help(&#39;brms&#39;). A more detailed introduction
-## to the package is available through vignette(&#39;brms_overview&#39;).</code></pre>
-<pre><code>## 
-## Attaching package: &#39;brms&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:stats&#39;:
-## 
-##     ar</code></pre>
-<pre class="r"><code>library(sjPlot)</code></pre>
-<pre><code>## Learn more about sjPlot with &#39;browseVignettes(&quot;sjPlot&quot;)&#39;.</code></pre>
-<pre class="r"><code>library(bayestestR)
+<pre class="r"><code>library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
 library(labelled)
-library(cowplot)</code></pre>
-<pre><code>## 
-## ********************************************************</code></pre>
-<pre><code>## Note: As of version 1.0.0, cowplot does not change the</code></pre>
-<pre><code>##   default ggplot2 theme anymore. To recover the previous</code></pre>
-<pre><code>##   behavior, execute:
-##   theme_set(theme_cowplot())</code></pre>
-<pre><code>## ********************************************************</code></pre>
-<pre><code>## 
-## Attaching package: &#39;cowplot&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:sjPlot&#39;:
-## 
-##     plot_grid, save_plot</code></pre>
-<pre class="r"><code>library(labelled)
-library(codebook)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;codebook&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:labelled&#39;:
-## 
-##     to_factor</code></pre>
-<pre class="r"><code>library(ggstatsplot)</code></pre>
-<pre><code>## Registered S3 methods overwritten by &#39;broom.mixed&#39;:
-##   method         from 
-##   augment.lme    broom
-##   augment.merMod broom
-##   glance.lme     broom
-##   glance.merMod  broom
-##   glance.stanreg broom
-##   tidy.brmsfit   broom
-##   tidy.gamlss    broom
-##   tidy.lme       broom
-##   tidy.merMod    broom
-##   tidy.rjags     broom
-##   tidy.stanfit   broom
-##   tidy.stanreg   broom</code></pre>
-<pre><code>## Registered S3 methods overwritten by &#39;car&#39;:
-##   method                          from
-##   influence.merMod                lme4
-##   cooks.distance.influence.merMod lme4
-##   dfbeta.influence.merMod         lme4
-##   dfbetas.influence.merMod        lme4</code></pre>
-<pre><code>## In case you would like cite this package, cite it as:
-##      Patil, I. (2018). ggstatsplot: &quot;ggplot2&quot; Based Plots with Statistical Details. CRAN.
-##      Retrieved from https://cran.r-project.org/web/packages/ggstatsplot/index.html</code></pre>
-<pre class="r"><code>sessionInfo()</code></pre>
+library(cowplot)
+library(labelled)
+library(codebook)
+library(ggstatsplot)
+sessionInfo()</code></pre>
 <pre><code>## R version 4.0.1 RC (2020-05-30 r78624)
 ## Platform: x86_64-apple-darwin17.0 (64-bit)
 ## Running under: macOS Mojave 10.14.6
@@ -487,8 +429,8 @@ library(codebook)</code></pre>
 ##  [57] SuppDists_1.1-9.5         nlme_3.1-148              statsExpressions_0.4.2    rlang_0.4.6              
 ##  [61] lifecycle_0.2.0           miniUI_0.1.1.1            groupedstats_1.0.1        skimr_2.1.1              
 ##  [65] LaplacesDemon_16.1.4      colourpicker_1.0          MatrixModels_0.4-1        sandwich_2.5-1           
-##  [69] EMT_1.1                   modelr_0.1.8              cellranger_1.1.0          matrixStats_0.56.0       
-##  [73] broomExtra_4.0.3          lmtest_0.9-37             Matrix_1.2-18             loo_2.2.0                
+##  [69] EMT_1.1                   modelr_0.1.8              cellranger_1.1.0          lmtest_0.9-37            
+##  [73] matrixStats_0.56.0        broomExtra_4.0.3          Matrix_1.2-18             loo_2.2.0                
 ##  [77] mc2d_0.1-18               carData_3.0-4             boot_1.3-25               zoo_1.8-8                
 ##  [81] reprex_0.3.0              base64enc_0.1-3           ggridges_0.5.2            processx_3.4.2           
 ##  [85] PMCMRplus_1.4.4           parameters_0.8.0          dunn.test_1.3.5           ggExtra_0.9              
