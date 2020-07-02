@@ -78,6 +78,12 @@ ggbetweenstats(vcs, sex, openn) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
 ggbetweenstats(vcs, sex, soi_full) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, behavior) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, attitude) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
+ggbetweenstats(vcs, sex, desire) +
+  scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
 
 ggplot(vcs, aes(f0, fill = sex)) + 
   geom_histogram(position = "identity", alpha = 0.4)+

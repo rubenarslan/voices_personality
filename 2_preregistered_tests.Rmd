@@ -10,13 +10,14 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,message=F)
 library(tidyverse)
 library(knitr)
 library(brms)
 library(sjPlot)
 library(bayestestR)
 library(labelled)
+library(cowplot)
 theme_set(theme_bw())
 ```
 
@@ -44,6 +45,8 @@ vcs <- vcs %>%
     age = if_else(dataset == 9, 20, age)/10,
     age_se = if_else(dataset == 9, 3, 0.5)/10
   )
+vcs <- vcs %>% filter(!is.na(f0), !is.na(pf), !is.na(age))
+
 warmup <- 2000
 iter <- warmup + 2000
 chains <- 4
@@ -52,15 +55,9 @@ priors <- c(
   prior(normal(0, 3), class = b)
 )
 
-variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = "Formants (f1-f4)", "age" = "Age")
-effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = "Formants (f1-f4)", "b_age" = "Age")
+variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = " Formant position (Pf)", "age" = "Age", "f0:sex1" = "Voice pitch (f0) × Sex")
+effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = " Formant position (Pf)", "b_age" = "Age", "b_f0.sex1" = "Voice pitch (f0) × Sex")
 
-```
-
-## Missingness patterns
-```{r}
-codebook::md_pattern(vcs %>% select(dominance, neuro, agree, soi_full, sex, age, f0, pf, dataset))
-vcs <- vcs %>% filter(!is.na(f0), !is.na(pf), !is.na(age))
 ```
 
 
@@ -131,11 +128,11 @@ compare_models <- loo_compare(h1_simple, h1_after_diagnosis)
 compare_models
 
 h1_sex_mod_dataset_varying <- brm(dominance ~ f0 + sex + age + 
-                                    (1 + f0 || dataset), data = vcs,
+                                    (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
-          file = "models/dominance/h1_sex_mod_dataset_varying") %>% 
+          file = "models/dominance/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
@@ -194,7 +191,137 @@ kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated as
 </details>
 
 
-## Hypothesis 2: Agreeableness
+## Hypothesis 2:  Extraversion
+
+Participants with lower voice pitch will score higher on extraversion
+
+__Interpretation:__ The data are are consistent with a substantial linear negative relationship
+between `f0` and extraversion. The 89% HDI for `f0`
+excludes and falls entirely outside the ROPE. The 89% of the HDI for `pf` overlaps zero and the ROPE boundaries. This evidence is consistent with an association, where people with deeper voices have higher extraversion (after adjusting for age and gender), but further research is needed to test whether the association with  `pf` is negligible in size.
+
+
+### Visually diagnose non-linearity
+```{r,warning=FALSE}
+ggplot(vcs, aes(f0, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour =  "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(pf, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+
+ggplot(vcs, aes(age*10, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  scale_x_continuous("Age") +
+  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
+              formula = y ~ s(x)) +
+  scale_color_viridis_d("Sex") +
+  scale_fill_viridis_d("Sex") 
+```
+
+__Decisions upon visual diagnosis:__ Visual diagnostic shows signs of a potential interaction by sex coupled with nonlinearity for pf.
+We will fit separate splines by sex for pf. It is necessary to model measurement error in age, as dataset 9 (where age was not noted individually) is included in these analyses.
+
+
+### Models
+```{r}
+h1_simple <- brm(extra ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, save_mevars = TRUE, 
+          file = "models/extra/h1_simple") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+
+h1_after_diagnosis <- brm(extra ~ f0 + s(pf, by = sex) + sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter + 1000, warmup = warmup + 1000, cores = chains, chains = chains,
+          prior = priors, 
+          control = control, save_mevars = TRUE,
+          file = "models/extra/h1_nonlinear2") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+conditional_smooths(h1_after_diagnosis)
+
+compare_models <- loo_compare(h1_simple, h1_after_diagnosis)
+compare_models
+
+h1_sex_mod_dataset_varying <- brm(extra ~ f0 + sex + me(age, age_se) + 
+                                    (1 + f0 + sex || dataset), data = vcs,
+          prior = priors,
+          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
+          control = control, save_mevars = TRUE,
+          file = "models/extra/h1_sex_mod_dataset_varying2") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_after_diagnosis_melsm <- brm(
+  bf(extra ~ f0 + sex + me(age, age_se) + (1 | dataset),
+     sigma ~ f0 + sex + me(age, age_se) + (1 | dataset)), data = vcs,
+          prior = priors,
+          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
+          control = control, save_mevars = TRUE,
+          file = "models/extra/h1_after_diagnosis_melsm") %>%
+  add_criterion("loo") %>%
+  add_criterion("bayes_R2") %>%
+  add_criterion("loo_R2")
+
+
+compare_models <- loo_compare(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying ,h1_after_diagnosis_melsm
+                      )
+compare_models
+r2s <- list(h1_simple=h1_simple, h1_after_diagnosis=h1_after_diagnosis, h1_sex_mod_dataset_varying=h1_sex_mod_dataset_varying,h1_after_diagnosis_melsm=h1_after_diagnosis_melsm) %>% 
+  map(~ { x <- as_tibble(bayes_R2(.))
+          x$loo_R2 <- loo_R2(.)
+          x
+          }) %>%
+  bind_rows(.id="model") %>% 
+  arrange(desc(loo_R2))
+
+sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
+                  pred.labels = variable_labels)
+equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test_table <- equiv_test %>% 
+  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
+  mutate(
+    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
+    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
+  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
+kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
+plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_after_diagnosis)
+conditional_effects(h1_after_diagnosis_melsm)
+# conditional_smooths(h1_after_diagnosis_melsm)
+summary(h1_sex_mod_dataset_varying)
+summary(h1_after_diagnosis_melsm)
+kable(r2s, caption = "Explained variance, regular and leave-one-out.")
+kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated association between f0 and outcome by dataset")
+equivalence_test(h1_after_diagnosis_melsm, range = c(-0.1, 0.1))
+```
+
+</details>
+
+
+## Hypothesis 3: Agreeableness
 
 Participants with lower voice pitch will score higher on agreeableness.
 
@@ -237,45 +364,45 @@ in age, as dataset 9 (where age was not noted individually) is included in these
 ### Models
 ```{r}
 h1_simple <- brm(agree ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          iter = iter + 1000, warmup = warmup + 1000, chains = chains, cores = chains,
           prior = priors,
           control = control, save_mevars = TRUE, 
-          file = "models/agree/h1_simple") %>% 
+          file = "models/agree/h1_simple2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
 
 
-h1_after_diagnosis <- brm(agree ~ s(f0) + s(pf) + sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, cores = chains, chains = chains,
-          prior = priors, 
-          control = control, save_mevars = TRUE,
-          file = "models/agree/h1_nonlinear") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-conditional_smooths(h1_after_diagnosis)
+
+h1_after_diagnosis <- brm(agree ~ f0 * sex + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
+                          iter = iter + 1500, warmup = warmup + 1500, cores = chains, chains = chains,
+                          prior = priors, 
+                          control = control, save_mevars = TRUE,
+                          file = "models/agree/h1_nonlinear4") %>% 
+    add_criterion("loo") %>% 
+    add_criterion("bayes_R2") %>% 
+    add_criterion("loo_R2") 
 
 compare_models <- loo_compare(h1_simple, h1_after_diagnosis)
 compare_models
 
-h1_sex_mod_dataset_varying <- brm(agree ~ f0 + pf + f0 * sex + me(age, age_se) + 
-                                    (1 + f0 + pf + sex || dataset), data = vcs,
+h1_sex_mod_dataset_varying <- brm(agree ~ f0 * sex + sex + me(age, age_se) + 
+                                    (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
-          file = "models/agree/h1_sex_mod_dataset_varying") %>% 
+          file = "models/agree/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
 
 h1_after_diagnosis_melsm <- brm(
-  bf(agree ~ s(f0) + s(pf) + sex + me(age, age_se) + (1 | dataset),
-     sigma ~ s(f0) + s(pf) + sex + me(age, age_se) + (1 | dataset)), data = vcs,
+  bf(agree ~ f0 * sex + sex + me(age, age_se) + (1 | dataset),
+     sigma ~ f0 * sex + sex + me(age, age_se) + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
-          file = "models/agree/h1_after_diagnosis_melsm") %>% 
+          file = "models/agree/h1_after_diagnosis_melsm2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
@@ -284,6 +411,8 @@ h1_after_diagnosis_melsm <- brm(
 compare_models <- loo_compare(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying,
                       h1_after_diagnosis_melsm)
 compare_models
+
+
 r2s <- list(h1_simple=h1_simple, h1_after_diagnosis=h1_after_diagnosis, h1_sex_mod_dataset_varying=h1_sex_mod_dataset_varying,
                       h1_after_diagnosis_melsm=h1_after_diagnosis_melsm) %>% 
   map(~ { x <- as_tibble(bayes_R2(.))
@@ -321,137 +450,9 @@ kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated as
 
 </details>
 
-## Hypothesis 3:  Neuroticism
 
-Participants with lower voice pitch will score lower on neuroticism.
-
-__Interpretation:__ The data are are consistent with linear positive relationship
-between `f0` and neuroticism. The 89% HDI for `f0`
-excludes zero but partly inside the ROPE. 69% of the HDI for `pf` falls within the ROPE. This
-evidence is consistent with an association, where people with deeper voices have
-lower neuroticism (after adjusting for age and gender), but further research is needed to test whether the associations with `f0` and `pf` are negligible in size.
-
-
-### Visually diagnose non-linearity
-```{r,warning=FALSE}
-ggplot(vcs, aes(f0, neuro)) + 
-  geom_jitter(aes(colour = sex), alpha = 0.3) +
-  geom_smooth(method = "gam", colour =  "black", formula = y ~ s(x)) +
-  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
-              formula = y ~ s(x)) +
-  scale_color_viridis_d("Sex") +
-  scale_fill_viridis_d("Sex") 
-
-ggplot(vcs, aes(pf, neuro)) + 
-  geom_jitter(aes(colour = sex), alpha = 0.3) +
-  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
-  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
-              formula = y ~ s(x)) +
-  scale_color_viridis_d("Sex") +
-  scale_fill_viridis_d("Sex") 
-
-ggplot(vcs, aes(age*10, neuro)) + 
-  geom_jitter(aes(colour = sex), alpha = 0.3) +
-  scale_x_continuous("Age") +
-  geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
-  geom_smooth(aes(colour = sex, fill = sex), method = "gam",
-              formula = y ~ s(x)) +
-  scale_color_viridis_d("Sex") +
-  scale_fill_viridis_d("Sex") 
-```
-
-__Decisions upon visual diagnosis:__ Visual diagnostic shows signs of a potential interaction by sex f0 and a potential interaction by sex coupled with nonlinearity for pf.
-We will fit an interaction for f0, and separate splines by sex for pf. It is necessary to model measurement error in age, as dataset 9 (where age was not noted individually) is included in these analyses.
-
-
-### Models
-```{r}
-h1_simple <- brm(neuro ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/neuro/h1_simple") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-
-h1_after_diagnosis <- brm(neuro ~ f0 * sex + s(pf, by = sex) + sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, cores = chains, chains = chains,
-          prior = priors, 
-          control = control, save_mevars = TRUE,
-          file = "models/neuro/h1_nonlinear") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-conditional_smooths(h1_after_diagnosis)
-
-compare_models <- loo_compare(h1_simple, h1_after_diagnosis)
-compare_models
-
-h1_sex_mod_dataset_varying <- brm(neuro ~ f0 + sex + me(age, age_se) + 
-                                    (1 + f0 + sex + age || dataset), data = vcs,
-          prior = priors,
-          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
-          file = "models/neuro/h1_sex_mod_dataset_varying") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-h1_after_diagnosis_melsm <- brm(
-  bf(neuro ~ f0 + sex + me(age, age_se) + (1 | dataset),
-     sigma ~ f0 + sex + me(age, age_se) + (1 | dataset)), data = vcs,
-          prior = priors,
-          iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
-          file = "models/neuro/h1_after_diagnosis_melsm") %>%
-  add_criterion("loo") %>%
-  add_criterion("bayes_R2") %>%
-  add_criterion("loo_R2")
-
-
-compare_models <- loo_compare(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying ,h1_after_diagnosis_melsm
-                      )
-compare_models
-r2s <- list(h1_simple=h1_simple, h1_after_diagnosis=h1_after_diagnosis, h1_sex_mod_dataset_varying=h1_sex_mod_dataset_varying,h1_after_diagnosis_melsm=h1_after_diagnosis_melsm) %>% 
-  map(~ { x <- as_tibble(bayes_R2(.))
-          x$loo_R2 <- loo_R2(.)
-          x
-          }) %>%
-  bind_rows(.id="model") %>% 
-  arrange(desc(loo_R2))
-
-sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
-                  pred.labels = variable_labels)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
-equiv_test_table <- equiv_test %>% 
-  mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
-  mutate(
-    ROPE_Percentage = sprintf("%2.f%%", 100*ROPE_Percentage),
-    HDI = sprintf("[% .2f;% .2f]", HDI_low, HDI_high)) %>% 
-  select(Parameter, H0 = ROPE_Equivalence, `inside ROPE` = ROPE_Percentage, `89% HDI` = HDI)
-kable(equiv_test_table, caption = "Test whether the 89% highest-density interval (HDI) is fully within the region of practical equivalence (ROPE) of [-0.1;0.1] that we set (where all continuous variables, except age are standardised).")
-plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), labels = effect_labels)
-```
-
-<details><summary>Model details</summary>
-
-```{r}
-summary(h1_simple)
-summary(h1_after_diagnosis)
-conditional_effects(h1_after_diagnosis_melsm)
-# conditional_smooths(h1_after_diagnosis_melsm)
-summary(h1_sex_mod_dataset_varying)
-# summary(h1_after_diagnosis_melsm)
-kable(r2s, caption = "Explained variance, regular and leave-one-out.")
-kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated association between f0 and outcome by dataset")
-```
-
-</details>
-
-## Hypothesis 4: Sociosexuality
-Participants with lower voice pitch will report having a more unrestricted sociosexuality.
+## Hypothesis 4: SOI behavior
+Participants with lower voice pitch will report having a more unrestricted sociosexual behavior.
 
 __Interpretation:__ The data are are consistent with substantial linear negative relationship
 between `f0` and unrestricted sociosexuality. The 89% HDI for `f0`
@@ -462,7 +463,7 @@ a less restricted sociosexuality (after adjusting for age and gender). Further r
 
 ### Visually diagnose non-linearity
 ```{r,warning=FALSE}
-ggplot(vcs, aes(f0, soi_full)) + 
+ggplot(vcs, aes(f0, behavior)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
   geom_smooth(aes(colour = sex, fill = sex), method = "gam",
@@ -470,7 +471,7 @@ ggplot(vcs, aes(f0, soi_full)) +
   scale_color_viridis_d("Sex") +
   scale_fill_viridis_d("Sex") 
 
-ggplot(vcs, aes(pf, soi_full)) + 
+ggplot(vcs, aes(pf, behavior)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
   geom_smooth(aes(colour = sex, fill = sex), method = "gam",
@@ -478,7 +479,7 @@ ggplot(vcs, aes(pf, soi_full)) +
   scale_color_viridis_d("Sex") +
   scale_fill_viridis_d("Sex") 
 
-ggplot(vcs, aes(age*10, soi_full)) + 
+ggplot(vcs, aes(age*10, behavior)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   scale_x_continuous("Age") +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
@@ -494,21 +495,21 @@ another. There is no evidence in the plots that there is an interaction with sex
 
 ### Models
 ```{r}
-h1_simple <- brm(soi_full ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
           control = control, save_mevars = TRUE, 
-          file = "models/soi_full/h1_simple") %>% 
+          file = "models/behavior/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
 
 
-h1_after_diagnosis <- brm(soi_full ~  s(f0) + s(pf) + sex + s(age, by = sex) + (1 | dataset), data = vcs,
+h1_after_diagnosis <- brm(behavior ~  s(f0) + s(pf) + sex + s(age, by = sex) + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, cores = chains, chains = chains,
           prior = priors, 
           control = control, save_mevars = TRUE,
-          file = "models/soi_full/h1_nonlinear") %>% 
+          file = "models/behavior/h1_nonlinear") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
@@ -517,29 +518,30 @@ conditional_smooths(h1_after_diagnosis)
 compare_models <- loo_compare(h1_simple, h1_after_diagnosis)
 compare_models
 
-h1_sex_mod_dataset_varying <- brm(soi_full ~ f0 + sex + s(age, by = sex) + 
-                                    (1 + f0 + sex + age || dataset), data = vcs,
+h1_sex_mod_dataset_varying <- brm(behavior ~ f0 + sex + s(age, by = sex) + 
+                                    (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
-          file = "models/soi_full/h1_sex_mod_dataset_varying") %>% 
+          file = "models/behavior/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
 
 h1_after_diagnosis_melsm <- brm(
-  bf(soi_full ~  f0 + sex + s(age, by = sex) + (1 | dataset),
+  bf(behavior ~  f0 + sex + s(age, by = sex) + (1 | dataset),
      sigma ~ f0 + sex + s(age, by = sex) + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
           control = control, save_mevars = TRUE,
-          file = "models/soi_full/h1_after_diagnosis_melsm") %>%
+          file = "models/behavior/h1_after_diagnosis_melsm") %>%
   add_criterion("loo") %>%
   add_criterion("bayes_R2") %>%
   add_criterion("loo_R2")
 
 compare_models <- loo_compare(h1_simple, h1_after_diagnosis, h1_sex_mod_dataset_varying, h1_after_diagnosis_melsm)
 compare_models
+
 r2s <- list(h1_simple=h1_simple, h1_after_diagnosis=h1_after_diagnosis, h1_sex_mod_dataset_varying=h1_sex_mod_dataset_varying, h1_after_diagnosis_melsm=h1_after_diagnosis_melsm) %>% 
   map(~ { x <- as_tibble(bayes_R2(.))
           x$loo_R2 <- loo_R2(.)
@@ -550,6 +552,7 @@ r2s <- list(h1_simple=h1_simple, h1_after_diagnosis=h1_after_diagnosis, h1_sex_m
 
 sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
                   pred.labels = variable_labels)
+
 equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
@@ -572,6 +575,7 @@ summary(h1_sex_mod_dataset_varying)
 summary(h1_after_diagnosis_melsm)
 kable(r2s, caption = "Explained variance, regular and leave-one-out.")
 kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated association between f0 and outcome by dataset")
+equivalence_test(h1_after_diagnosis_melsm, range = c(-0.1, 0.1))
 ```
 
 </details>
@@ -579,12 +583,13 @@ kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated as
 
 
 ## Summary of results
-```{r}
+
+### Models
+```{r preregresults,fig.width=8, fig.height=10}
 dominance <- readRDS("models/dominance/h1_simple.rds")
 agree <- readRDS("models/agree/h1_simple.rds")
-neuro <- readRDS("models/neuro/h1_simple.rds")
-soi <- readRDS("models/soi_full/h1_simple.rds")
-library(cowplot)
+extra <- readRDS("models/extra/h1_simple.rds")
+soi <- readRDS("models/behavior/h1_simple.rds")
 theme_set(theme_cowplot())
 
 modify <- function(outcome) {
@@ -604,19 +609,133 @@ remove_x_axis <- list(
 p_dominance <- plot(equivalence_test(dominance, parameters = c("b_f0", "b_pf", "b_sex1"))) + modify("Dominance") + remove_x_axis
 p_agree <- plot(equivalence_test(agree, parameters = c("b_f0", "b_pf", "b_sex1"))) +
   modify("Agreeableness") + remove_x_axis
-p_neuro <- plot(equivalence_test(neuro, parameters = c("b_f0", "b_pf", "b_sex1")))  +
-  modify("Neuroticism") + remove_x_axis
+p_extra <- plot(equivalence_test(extra, parameters = c("b_f0", "b_pf", "b_sex1")))  +
+  modify("Extraversion") + remove_x_axis
 p_soi <- plot(equivalence_test(soi, parameters = c("b_f0", "b_pf", "b_sex1"))) +
-  modify("Sociosexuality") + xlim(c(-0.5, 0.4))
+  modify("SOI behavior") + xlim(c(-0.5, 0.4))
 legend <- get_legend(
   p_dominance + 
     guides(fill = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom", legend.justification = "center")
 )
 
-neg_spacer <- -0.11
-plot_grid(ncol = 1,  rel_heights = c(1, neg_spacer, 1, neg_spacer, 1, neg_spacer, 1.1, .15), align = "v", axis = "b",
-          p_dominance, NULL, p_agree,NULL, p_neuro,NULL, p_soi, legend)
+neg_spacer <- -0.17
+aligned_plots <- align_plots(p_dominance, p_extra, p_agree, p_soi, align="hv")
+plot_grid(ncol = 1,  rel_heights = c(1, neg_spacer, 0.8, neg_spacer, 1, neg_spacer, 1.1, .15),
+          aligned_plots[[1]], NULL, aligned_plots[[2]], NULL, aligned_plots[[3]],NULL, aligned_plots[[4]], legend)
+
 ggsave("preregistered_rope.pdf", width = 8, height = 10)
+```
+
+### Tabular
+```{r}
+get_coefs <- function(model) {
+model_summary <- summary(model)
+nonvarying <- model_summary$fixed %>% 
+  as.data.frame() %>% 
+  rownames_to_column("term") %>% 
+  mutate(group = "non-varying",
+         outcome = as.character(model_summary$formula[[1]][[2]]))
+varying <- model_summary$random %>% 
+  map(~ rownames_to_column(as.data.frame(.), "term")) %>% 
+  bind_rows(.id = "group") %>% 
+  left_join(model_summary$ngrps %>% 
+    as_tibble() %>% 
+    gather(group, n), by = "group") %>% 
+  mutate(#group = paste0(group, " (n=", n, ")"),
+         outcome = as.character(model_summary$formula[[1]][[2]]))
+
+two_digits <- function(x) { sprintf("%.2f", x) }
+coefs <- bind_rows(nonvarying, 
+                   varying)
+coefs <- coefs %>% select(group, outcome, term, Estimate, `l-95% CI`, `u-95% CI`)
+coefs$Estimate = two_digits(coefs$Estimate)
+coefs$`l-95% CI` = two_digits(coefs$`l-95% CI`)
+coefs$`u-95% CI` = two_digits(coefs$`u-95% CI`)
+coefs
+}
+
+coefs <- bind_rows(get_coefs(dominance), 
+                   get_coefs(extra), get_coefs(agree), get_coefs(soi))
+
+wide_coefs <- coefs %>% 
+  mutate(Estimate = paste0(Estimate, " [", `l-95% CI`, ";", `u-95% CI`, "]")) %>% 
+    select(group, outcome, term, Estimate) %>% 
+  mutate(term = recode(term, "meageage_se" = "Age(±SE)", "age" = "Age(±SE)"),
+         outcome = fct_inorder(outcome),
+         term = fct_inorder(term)) %>% 
+  spread(outcome, Estimate) %>% 
+  arrange(desc(group), term) %>% 
+  mutate(group = fct_inorder(group))
+
+outcome_names <- c("Extraversion" = "extra", "Dominance" = "dominance",
+                   "Agreeableness" = "agree", "SOI behavior" = "behavior")
+
+library(kableExtra)
+wide_coefs %>% 
+  mutate(term = str_replace_all(term, variable_labels)) %>% 
+  rename(!!!syms(outcome_names), Term = term) %>% 
+  select(-group) %>% 
+  kable(caption = "Exploratory analysis results") %>%
+  pack_rows(index = table(wide_coefs$group)) %>% 
+  column_spec(column = 1, width = "3.3cm") %>% 
+  column_spec(column = 2:(ncol(wide_coefs)-1), width = "3cm") %>% 
+  add_header_above(c(" " = 1, "Estimated effect on each outcome [95% CI]" = ncol(wide_coefs)-2)) %>% 
+  footnote("Estimated associations between outcomes, for which we had made preregistered predictions.")
+```
+
+
+### Scatterplots
+
+```{r}
+dominance <- ggplot(vcs, aes(f0, dominance)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "lm") +
+  scale_color_manual("Sex", values = c("#40A5BF", "black")) +
+  scale_fill_manual("Sex", values = c("#40A5BF", "black"))  +
+  guides(color = F, fill = F) +
+  xlab("") +
+  ylab("Dominance") +
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
+
+extra <- ggplot(vcs, aes(f0, extra)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "lm") +
+  scale_color_manual("Sex", values = c("#40A5BF", "black")) +
+  scale_fill_manual("Sex", values = c("#40A5BF", "black"))  +
+  guides(color = F, fill = F) +
+  xlab("") +
+  ylab("Extraversion") +
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
+
+agree <- ggplot(vcs, aes(f0, agree)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "lm") +
+  scale_color_manual("Sex", values = c("#40A5BF", "black")) +
+  scale_fill_manual("Sex", values = c("#40A5BF", "black"))  +
+  guides(color = F, fill = F) +
+  xlab("Voice pitch (f0)") +
+  ylab("Agreeableness") +
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
+
+
+behavior <- ggplot(vcs, aes(f0, behavior)) + 
+  geom_jitter(aes(colour = sex), alpha = 0.3) +
+  geom_smooth(aes(colour = sex, fill = sex), method = "lm") +
+  scale_color_manual("Sex", values = c("#40A5BF", "black")) +
+  scale_fill_manual("Sex", values = c("#40A5BF", "black"))  +
+  guides(color = F, fill = F) +
+  xlab("Voice pitch (f0)") +
+  ylab("SOI Behavior") +
+  theme(panel.spacing = unit(c(0), "cm"),
+        plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
+
+
+plot_grid(ncol = 2,  dominance, extra, agree, behavior, rel_heights = c(1, 1, 1, 1),
+          align = "hv")
+ggsave("scatterplots_prereg.pdf", width = 8, height = 8)
 ```
 

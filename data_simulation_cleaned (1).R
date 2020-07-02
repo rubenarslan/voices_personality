@@ -11,20 +11,20 @@ library(dplyr)
 
 ###Lisas Skript für Variablen die miteinander korrelieren
 
-multirnorm <- function(n, vars = 3, cors = 0, mu = 0, sd = 1, 
+multirnorm <- function(n, vars = 3, cors = 0, mu = 0, sd = 1,
                        varnames = NULL, empirical = FALSE) {
   if (length(mu) == 1) {
     mu <- rep(mu, vars)
   } else if (length(mu) != vars) {
     stop("the length of mu must be 1 or vars");
   }
-  
+
   if (length(sd) == 1) {
     sd <- rep(sd, vars)
   } else if (length(sd) != vars) {
     stop("the length of sd must be 1 or vars");
   }
-  
+
   # correlation matrix
   if (class(cors) == "numeric" & length(cors) == 1) {
     if (cors >=-1 & cors <=1) {
@@ -33,8 +33,8 @@ multirnorm <- function(n, vars = 3, cors = 0, mu = 0, sd = 1,
       stop("cors must be between -1 and 1")
     }
   }
-  
-  if (class(cors) == "matrix") { 
+
+  if (class(cors) == "matrix") {
     if (mean(dim(cors) == c(vars,vars)) == 1) {
       cor_mat <- cors
     } else {
@@ -63,15 +63,15 @@ multirnorm <- function(n, vars = 3, cors = 0, mu = 0, sd = 1,
       }
     }
   }
-  
+
   sigma <- (sd %*% t(sd)) * cor_mat
   bvn <- MASS::mvrnorm(n, mu, sigma, empirical = empirical)
   df <- data.frame(bvn)
-  
+
   if (length(varnames) == vars) {
     names(df) <- varnames
   }
-  
+
   df
 }
 
@@ -87,7 +87,7 @@ simdata <- tibble(
   voice_id = 1:voice_n,
   f0 = rnorm(voice_n), # fundamental frequency
   pf = rnorm(voice_n) # formant position
-) 
+)
 
 
 ### jitter and shimmer (correlated)
@@ -227,7 +227,7 @@ for(i in c(2:18)){
 #names(simdata)
 simdata2 <-simdata
 simdata2 <- simdata2 %>% mutate_at(vars(f0:age),
-                       funs(as.numeric(as.character(.)))) 
+                       funs(as.numeric(as.character(.))))
 
 #Neue Spalte mit Datensatznummer
 simdata2$dataset <- simdata2$voice_id
@@ -293,3 +293,11 @@ WriteXLS(simdata2, "simulated_data_080319.xlsx", SheetNames = "sheet1", perl="C:
 
 
 
+
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+library(codebook)

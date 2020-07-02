@@ -1,0 +1,44 @@
+---
+title: "Do voices carry valid information about a speaker’s personality?"
+author: "Julia Stern, Christoph Schild, Benedict C. Jones, Lisa M. DeBruine, Amanda Hahn, David A. Puts, Ingo Zettler, Tobias L. Kordsmeyer, David Feinberg, Dan Zamfir, Lars Penke, & Ruben C. Arslan"
+date: "2/7/2020"
+output: html_document
+---
+
+
+## Results
+
+- [Codebook](1_codebook.html):  The codebook contains metadata, means, missingness, correlations, sex differences, age trends, and further information on all variables in the study.
+- [Preregistered tests](2_preregistered_tests.html)
+- [Exploratory analyses and robustness checks](3_exploratory_analyses.html)
+
+
+### Reproducibility
+This repository uses the [renv](https://rstudio.github.io/renv/) package to make
+it easier to rerun analyses using the same setup and package versions that were
+used to create them.
+
+<details><summary>Here's a classical session info.</summary>
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+library(cowplot)
+library(labelled)
+library(codebook)
+library(ggstatsplot)
+sessionInfo()
+```
+
+</details>
+
+<details><summary>Here's our renv lockfile.</summary>
+
+```{r}
+cat(readLines("renv.lock"), sep = "\n")
+```
+</details>
