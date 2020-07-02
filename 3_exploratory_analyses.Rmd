@@ -1,5 +1,5 @@
 ---
-title: "Preregistered analysis"
+title: "Exploratory analysis"
 author: "Ruben Arslan"
 date: "3/5/2019"
 output: 
