@@ -587,7 +587,7 @@ equivalence_test(h1_after_diagnosis_melsm, range = c(-0.1, 0.1))
 ### Models
 ```{r preregresults,fig.width=8, fig.height=10}
 dominance <- readRDS("models/dominance/h1_simple.rds")
-agree <- readRDS("models/agree/h1_simple.rds")
+agree <- readRDS("models/agree/h1_simple2.rds")
 extra <- readRDS("models/extra/h1_simple.rds")
 soi <- readRDS("models/behavior/h1_simple.rds")
 theme_set(theme_cowplot())
