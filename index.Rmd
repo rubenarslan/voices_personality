@@ -8,7 +8,7 @@ output: html_document
 
 ## Results
 
-- [Codebook](1_codebook.html):  The codebook contains metadata, means, missingness, correlations, sex differences, age trends, and further information on all variables in the study.
+- [Codebook](1_codebook.html):  The codebook contains metadata, means, missingness, correlations, sex differences, age trends, and further information on all variables in the study. We also provide a [codebook with unstandardised variables](1_codebook_before_standardisation.html).
 - [Preregistered tests](2_preregistered_tests.html)
 - [Exploratory analyses and robustness checks](3_exploratory_analyses.html)
 

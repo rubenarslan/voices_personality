@@ -451,7 +451,7 @@ kable(coef(h1_sex_mod_dataset_varying)$dataset[, ,"f0"], caption = "Estimated as
 </details>
 
 
-## Hypothesis 4: SOI behavior
+## Hypothesis 4: SOI-R behavior
 Participants with lower voice pitch will report having a more unrestricted sociosexual behavior.
 
 __Interpretation:__ The data are are consistent with substantial linear negative relationship
@@ -612,7 +612,7 @@ p_agree <- plot(equivalence_test(agree, parameters = c("b_f0", "b_pf", "b_sex1")
 p_extra <- plot(equivalence_test(extra, parameters = c("b_f0", "b_pf", "b_sex1")))  +
   modify("Extraversion") + remove_x_axis
 p_soi <- plot(equivalence_test(soi, parameters = c("b_f0", "b_pf", "b_sex1"))) +
-  modify("SOI behavior") + xlim(c(-0.5, 0.4))
+  modify("SOI-R behavior") + xlim(c(-0.5, 0.4))
 legend <- get_legend(
   p_dominance + 
     guides(fill = guide_legend(nrow = 1)) +
@@ -669,7 +669,7 @@ wide_coefs <- coefs %>%
   mutate(group = fct_inorder(group))
 
 outcome_names <- c("Extraversion" = "extra", "Dominance" = "dominance",
-                   "Agreeableness" = "agree", "SOI behavior" = "behavior")
+                   "Agreeableness" = "agree", "SOI-R behavior" = "behavior")
 
 library(kableExtra)
 wide_coefs %>% 
@@ -729,7 +729,7 @@ behavior <- ggplot(vcs, aes(f0, behavior)) +
   scale_fill_manual("Sex", values = c("#40A5BF", "black"))  +
   guides(color = F, fill = F) +
   xlab("Voice pitch (f0)") +
-  ylab("SOI Behavior") +
+  ylab("SOI-R Behavior") +
   theme(panel.spacing = unit(c(0), "cm"),
         plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
 
