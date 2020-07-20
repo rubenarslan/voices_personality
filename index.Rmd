@@ -12,6 +12,77 @@ output: html_document
 - [Preregistered tests](2_preregistered_tests.html)
 - [Exploratory analyses and robustness checks](3_exploratory_analyses.html)
 
+```{r setup,echo=F}
+library(r2d3)
+```
+
+
+## Voice pitch and formants
+```{r echo=F}
+library(tidyverse)
+author_voices <- rio::import("author_voices/acoustics.xlsx")
+vcs <- rio::import("data_complete_untrans2.xlsx")
+author_voices <- author_voices %>%
+  mutate(f0 = (`Mean F0` - mean(vcs$f0,na.rm=T))/sd(vcs$f0,na.rm=T),
+         f1 = (f1 - mean(vcs$f1,na.rm=T))/sd(vcs$f1,na.rm=T),
+         f2 = (f2 - mean(vcs$f2,na.rm=T))/sd(vcs$f2,na.rm=T),
+         f3 = (f3 - mean(vcs$f3,na.rm=T))/sd(vcs$f3,na.rm=T),
+         f4 = (f4 - mean(vcs$f4,na.rm=T))/sd(vcs$f4,na.rm=T),
+         pf = f1+f2+f3+f4,
+         # pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
+         author = recode(Filename, "Lars.wav" = "LP",
+                         "Puts.wav" = "DAP",
+                         "christoph.wav" = "CS",
+                         "ruben.wav" = "RCA",
+                         "Julia.wav" = "JS",
+                         "amanda.wav" = "AH"),
+        pf_pos = pf + case_when(author == "RCA" ~ -0.05,
+                                author == "CS" ~ +0.05,
+                                TRUE ~ 0))
+# 
+#  for(i in 1:nrow(author_voices)) {
+#    av::av_audio_convert(paste0("author_voices/", author_voices$Filename[i]), 
+#                         paste0("author_voices/", author_voices$author[i], ".mp3"))
+#  }
+```
+
+To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U".
+
+```{r echo=F}
+options = list(margin = 50,
+               barPadding = 0.1,
+               colour = "rgba(255,0,0,1)",
+               hovercolour = "rgba(50,50,50,1)",
+               xLabel = "x label",
+               yLabel = "y label",
+               xmin = max(author_voices$f0),
+               xmax = max(author_voices$f0),
+               ymin = min(author_voices$pf),
+               ymax = max(author_voices$pf),
+               chartTitle = "Chart Title"
+     )
+data <- author_voices
+data$x <- data$f0
+data$y <- data$pf
+
+options <- list(margin = 50,
+               barPadding = 0.1,
+               colour = "rgba(0,0,0,1)",
+               hovercolour = "orange",
+               xLabel = "Voice pitch (f0)",
+               yLabel = "Formants (pf)",
+               xmin = min(data$x),
+               xmax = max(data$x),
+               ymin = min(data$y),
+               ymax = max(data$y),
+               chartTitle = "Authors' voices"
+     )
+```
+
+```{r echo=F, fig.width=6,fig.height=5}
+r2d3(data=data, options = options, script = "d3_scatterplot.js")
+```
+
 
 ### Reproducibility
 This repository uses the [renv](https://rstudio.github.io/renv/) package to make
