@@ -54,9 +54,27 @@ svg.append("text")
   .text(options.chartTitle);
 
 
+  var gdots_participants =  svg.selectAll("g.dot")
+            .data(data.filter(function(d) { return d.f0_vcs !== null }))
+            .enter()
+            .append('g');
+
+  var circles_participants = gdots_participants.append("circle")
+            .attr("class", "dot")
+            .attr("r", 2)
+            .attr("cx", function (d) {
+                return x(d.f0_vcs);
+            })
+            .attr("cy", function (d) {
+                return y(d.pf_vcs);
+            })
+            .style("fill", function(d) {
+              return d.sex == 1 ? "black" : "#40A5BF";
+              })
+            .style("opacity", "0.1");
 
   var gdots =  svg.selectAll("g.dot")
-            .data(data)
+            .data(data.filter(function(d) { return d.x !== null }))
             .enter()
             .append('g');
 
@@ -102,3 +120,4 @@ gdots
   .on("mouseover", mouseover)
   .on("mouseleave", mouseleave)
   .on("click", click);
+

@@ -61,7 +61,9 @@ options = list(margin = 50,
                ymax = max(author_voices$pf),
                chartTitle = "Chart Title"
      )
-data <- author_voices
+vcs <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
+
+data <- vcs %>% full_join(author_voices %>% mutate(voice_id=1e5+row_number()), suffix = c("_vcs", ""), by = "voice_id")
 data$x <- data$f0
 data$y <- data$pf
 
@@ -71,10 +73,10 @@ options <- list(margin = 50,
                hovercolour = "orange",
                xLabel = "Voice pitch (f0)",
                yLabel = "Formants (pf)",
-               xmin = min(data$x),
-               xmax = max(data$x),
-               ymin = min(data$y),
-               ymax = max(data$y),
+               xmin = min(data$x, data$f0_vcs, na.rm = T),
+               xmax = max(data$x, data$f0_vcs, na.rm = T),
+               ymin = min(data$y, data$pf_vcs, na.rm = T),
+               ymax = max(data$y, data$pf_vcs, na.rm = T),
                chartTitle = "Authors' voices"
      )
 ```
