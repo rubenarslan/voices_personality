@@ -28,7 +28,7 @@ author_voices <- author_voices %>%
          f2 = (f2 - mean(vcs$f2,na.rm=T))/sd(vcs$f2,na.rm=T),
          f3 = (f3 - mean(vcs$f3,na.rm=T))/sd(vcs$f3,na.rm=T),
          f4 = (f4 - mean(vcs$f4,na.rm=T))/sd(vcs$f4,na.rm=T),
-         pf = f1+f2+f3+f4,
+         pf = (f1+f2+f3+f4)/4,
          # pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
          author = recode(Filename, "Lars.wav" = "LP",
                          "Puts.wav" = "DAP",
@@ -46,7 +46,7 @@ author_voices <- author_voices %>%
 #  }
 ```
 
-To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U".
+To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U". Our 
 
 ```{r echo=F}
 options = list(margin = 50,
