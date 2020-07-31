@@ -29,7 +29,7 @@ ggplot2::theme_set(ggplot2::theme_bw())
 ## Load data
 
 ```{r}
-vcs <- rio::import("data_complete_untrans2.xlsx")
+vcs <- rio::import("data_complete_all_anonym_PfZ.xlsx")
 var_label(vcs$dominance) <- "Dominance"
 var_label(vcs$neuro) <- "Neuroticism"
 var_label(vcs$agree) <- "Agreeableness"
