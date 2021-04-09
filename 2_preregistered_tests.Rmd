@@ -24,18 +24,18 @@ theme_set(theme_bw())
 ## Load data
 
 ```{r}
-vcs <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
+vcs <- rio::import("data_complete_2021_zscored.rds")
+
 var_label(vcs$dominance) <- "Dominance"
 var_label(vcs$neuro) <- "Neuroticism"
 var_label(vcs$agree) <- "Agreeableness"
 var_label(vcs$extra) <- "Extraversion"
 var_label(vcs$openn) <- "Openness"
 var_label(vcs$consc) <- "Conscientiousness"
-var_label(vcs$soi_full) <- "Unrestricted sociosexuality"
+var_label(vcs$soir_full) <- "Unrestricted sociosexuality"
 var_label(vcs$f0) <- "Voice pitch"
 var_label(vcs$pf) <- "Formants"
 vcs$sex_c <- vcs$sex
-vcs$sex <- factor(if_else(vcs$sex == 1, "male", "female"))
 contrasts(vcs$sex) <- contr.helmert(2)
 var_label(vcs$sex) <- "Sex"
 set.seed(1)
@@ -54,6 +54,9 @@ control <- list(adapt_delta = 0.99)
 priors <- c(
   prior(normal(0, 3), class = b)
 )
+library(brms)
+options(mc.cores = parallel::detectCores(), brms.backend = "cmdstanr")
+rstan::rstan_options(auto_write = TRUE)
 
 variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = " Formant position (Pf)", "age" = "Age", "f0:sex1" = "Voice pitch (f0) × Sex")
 effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = " Formant position (Pf)", "b_age" = "Age", "b_f0.sex1" = "Voice pitch (f0) × Sex")
@@ -96,7 +99,7 @@ ggplot(vcs, aes(age*10, dominance)) +
   scale_fill_viridis_d("Sex") 
 ```
 
-__Decisions upon visual diagnosis:__ Visual diagnostic show no clear sign of nonlinearities. 
+__Decisions upon visual diagnosis:__ Visual diagnosis shows no clear sign of nonlinearities. 
 We will fit linear effects for f0, pf, and age. It is not necessary to model measurement error
 in age, as dataset 9 (where age was not noted individually) is not included in these analyses.
 Visually, there could be an interaction between sex and f0. 
@@ -107,7 +110,7 @@ Visually, there could be an interaction between sex and f0.
 h1_simple <- brm(dominance ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/dominance/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -117,7 +120,7 @@ h1_simple <- brm(dominance ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
 h1_after_diagnosis <- brm(dominance ~ f0*sex + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, cores = chains, chains = chains,
           prior = priors, 
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/dominance/h1_nonlinear") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -131,7 +134,7 @@ h1_sex_mod_dataset_varying <- brm(dominance ~ f0 + sex + age +
                                     (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/dominance/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -142,7 +145,7 @@ h1_after_diagnosis_melsm <- brm(
      sigma ~ f0 + sex + age + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/dominance/h1_after_diagnosis_melsm") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -237,7 +240,7 @@ We will fit separate splines by sex for pf. It is necessary to model measurement
 h1_simple <- brm(extra ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/extra/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -247,7 +250,7 @@ h1_simple <- brm(extra ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data =
 h1_after_diagnosis <- brm(extra ~ f0 + s(pf, by = sex) + sex + me(age, age_se) + (1 | dataset), data = vcs,
           iter = iter + 1000, warmup = warmup + 1000, cores = chains, chains = chains,
           prior = priors, 
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/extra/h1_nonlinear2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -262,7 +265,7 @@ h1_sex_mod_dataset_varying <- brm(extra ~ f0 + sex + me(age, age_se) +
                                     (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/extra/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -273,7 +276,7 @@ h1_after_diagnosis_melsm <- brm(
      sigma ~ f0 + sex + me(age, age_se) + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/extra/h1_after_diagnosis_melsm") %>%
   add_criterion("loo") %>%
   add_criterion("bayes_R2") %>%
@@ -366,7 +369,7 @@ in age, as dataset 9 (where age was not noted individually) is included in these
 h1_simple <- brm(agree ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
           iter = iter + 1000, warmup = warmup + 1000, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/agree/h1_simple2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -377,7 +380,7 @@ h1_simple <- brm(agree ~ f0 + pf + sex + me(age, age_se) + (1 | dataset), data =
 h1_after_diagnosis <- brm(agree ~ f0 * sex + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
                           iter = iter + 1500, warmup = warmup + 1500, cores = chains, chains = chains,
                           prior = priors, 
-                          control = control, save_mevars = TRUE,
+                          control = control, file_refit = "on_change", save_mevars = TRUE,
                           file = "models/agree/h1_nonlinear4") %>% 
     add_criterion("loo") %>% 
     add_criterion("bayes_R2") %>% 
@@ -390,7 +393,7 @@ h1_sex_mod_dataset_varying <- brm(agree ~ f0 * sex + sex + me(age, age_se) +
                                     (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/agree/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -401,7 +404,7 @@ h1_after_diagnosis_melsm <- brm(
      sigma ~ f0 * sex + sex + me(age, age_se) + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/agree/h1_after_diagnosis_melsm2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -498,7 +501,7 @@ another. There is no evidence in the plots that there is an interaction with sex
 h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/behavior/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -508,7 +511,7 @@ h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
 h1_after_diagnosis <- brm(behavior ~  s(f0) + s(pf) + sex + s(age, by = sex) + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, cores = chains, chains = chains,
           prior = priors, 
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/behavior/h1_nonlinear") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -522,7 +525,7 @@ h1_sex_mod_dataset_varying <- brm(behavior ~ f0 + sex + s(age, by = sex) +
                                     (1 + f0 + sex || dataset), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/behavior/h1_sex_mod_dataset_varying2") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -533,7 +536,7 @@ h1_after_diagnosis_melsm <- brm(
      sigma ~ f0 + sex + s(age, by = sex) + (1 | dataset)), data = vcs,
           prior = priors,
           iter = iter + 2000, warmup = warmup + 1000, cores = chains, chains = chains,
-          control = control, save_mevars = TRUE,
+          control = control, file_refit = "on_change", save_mevars = TRUE,
           file = "models/behavior/h1_after_diagnosis_melsm") %>%
   add_criterion("loo") %>%
   add_criterion("bayes_R2") %>%

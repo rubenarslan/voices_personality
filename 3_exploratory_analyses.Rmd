@@ -24,18 +24,18 @@ theme_set(theme_bw())
 ## Load data
 
 ```{r}
-vcs <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
+vcs <- rio::import("data_complete_2021_zscored.rds")
+
 var_label(vcs$dominance) <- "Dominance"
 var_label(vcs$neuro) <- "Neuroticism"
 var_label(vcs$agree) <- "Agreeableness"
 var_label(vcs$extra) <- "Extraversion"
 var_label(vcs$openn) <- "Openness"
 var_label(vcs$consc) <- "Conscientiousness"
-var_label(vcs$soi_full) <- "Unrestricted sociosexuality"
+var_label(vcs$soir_full) <- "Unrestricted sociosexuality"
 var_label(vcs$f0) <- "Voice pitch"
 var_label(vcs$pf) <- "Formants"
 vcs$sex_c <- vcs$sex
-vcs$sex <- factor(if_else(vcs$sex == 1, "male", "female"))
 contrasts(vcs$sex) <- contr.helmert(2)
 var_label(vcs$sex) <- "Sex"
 set.seed(1)
@@ -45,6 +45,8 @@ vcs <- vcs %>%
     age = if_else(dataset == 9, 20, age)/10,
     age_se = if_else(dataset == 9, 3, 0.5)/10
   )
+vcs <- vcs %>% filter(!is.na(f0), !is.na(pf), !is.na(age))
+
 warmup <- 2000
 iter <- warmup + 2000
 chains <- 4
@@ -52,11 +54,15 @@ control <- list(adapt_delta = 0.99)
 priors <- c(
   prior(normal(0, 3), class = b)
 )
+library(brms)
+options(mc.cores = parallel::detectCores(), brms.backend = "cmdstanr")
+rstan::rstan_options(auto_write = TRUE)
 
 variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = "Formant position (Pf)", "age" = "Age")
 effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = "Formant position (Pf)", "b_age" = "Age")
 
 ```
+
 
 ## Missingness patterns
 ```{r}
