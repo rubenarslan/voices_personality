@@ -1,0 +1,508 @@
+---
+title: "Aggrate and compute POMP"
+author: "Ruben Arslan"
+date: "4/9/2021"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    
+---
+
+
+## Load individual datasets
+```{r}
+##############################################################################################
+library(tidyverse)
+##alles zu einem Datensatz machen
+#alle zusammen gefuegten Rohdaten einlesen
+
+daten1 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten1.xlsx")
+daten2 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten2.xlsx")
+daten3 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten3.xlsx")
+daten4 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten4.xlsx")
+daten5 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten5.xlsx")
+daten6 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten6.xlsx")
+daten7 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten7.xlsx")
+daten8 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten8.xlsx")
+daten9 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten9.xlsx")
+daten10 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten10_new.xlsx")
+daten11 <- rio::import("Rohdaten_und_einzelne_Datensaetze/Daten_PSK_Stimme_zusammen_roh/daten11.xlsx")
+
+data_complete_all_raw <- rbind(daten1, daten2, daten3, daten4, daten5, daten6, daten7, daten8, daten9, daten10, daten11)
+```
+
+## Export raw
+```{r}
+rio::export(data_complete_all_raw, "data_complete_untrans.rds")
+```
+
+## Compute POMP (percentage of maximum possible)
+### Add min/max for each scale
+```{r}
+############################################################################################
+#Persoenlichkeitsdaten alle auf -2 bis +2 bringen (wie von Ruben empfohlen)
+#Formel: (x-5)/10*5  fuer 9er Skala. Sonst immer die 9 austauschen durch Länge der Skala und die erste 5 in der Klammer durch den Skalenmittelpunkt
+
+#Daten1: SOIR 1-5
+psych::describe(daten1)
+names(daten1)
+
+daten1$soi_minp <- 1
+daten1$soi_maxp <- 5
+
+##################################################################
+#Daten2: SOIR 1-5
+#dominance auch 1-5?
+#BFI auch 1-5
+psych::describe(daten2)
+
+daten2$soi_minp <- 1
+daten2$soi_maxp <- 5
+daten2$dominance_minp <- 1
+daten2$dominance_maxp <- 5
+daten2$big5_minp <- 1
+daten2$big5_maxp <- 5
+
+
+##################################################################
+#Daten3: SOIR 1-5
+#dominance -3 bis +3?
+n_distinct(daten3$dominance)
+items <- 8
+all(round(daten3$dominance*items) == daten3$dominance*items,na.rm=T)
+# 8 items. closest whole digit to min/max is -3/3
+#BFI auch 1-5
+psych::describe(daten3)
+
+daten3$soi_minp <- 1
+daten3$soi_maxp <- 9
+daten3$dominance_minp <- -3
+daten3$dominance_maxp <- 3
+daten3$big5_minp <- 1
+daten3$big5_maxp <- 5
+
+
+
+# turn sum scores into means
+daten3$neuro <- daten3$neuro/7
+daten3$extra <- daten3$extra/8
+daten3$openn <- daten3$openn/10
+daten3$agree <- daten3$agree/8
+daten3$consc <- daten3$consc/9
+
+psych::describe(daten3)[,c("min", "max")]
+
+##################################################################
+#Daten4: SOIR 1-5
+#BFI auch 1-5
+psych::describe(daten4)[,c("min", "max")]
+
+daten4$soi_minp <- 1
+daten4$soi_maxp <- 5
+daten4$big5_minp <- 1
+daten4$big5_maxp <- 5
+
+##################################################################
+#Daten5: SOIR 1-5
+psych::describe(daten5)[,c("min", "max")]
+names(daten5)
+daten5$soi_minp <- 1
+daten5$soi_maxp <- 9
+
+##################################################################
+#Daten6: SOIR 1-5
+psych::describe(daten6)[,c("min", "max")]
+names(daten6)
+daten6$soi_minp <- 1
+daten6$soi_maxp <- 9
+
+##################################################################
+#Daten7: SOIR 1-9
+#BFI auch 1-5
+#dominance 1-5
+daten7$soi_minp <- 1
+daten7$soi_maxp <- 9
+daten7$dominance_minp <- 1
+daten7$dominance_maxp <- 5
+daten7$big5_minp <- 1
+daten7$big5_maxp <- 5
+psych::describe(daten7)
+
+################
+##################################################################
+#Daten8: SOIR 1-5
+#BFI auch 1-5
+#dominance -2:2
+daten8$soi_minp <- 1
+daten8$soi_maxp <- 9
+daten8$dominance_minp <- -2
+daten8$dominance_maxp <- 2
+daten8$big5_minp <- 1
+daten8$big5_maxp <- 5
+
+psych::describe(daten8)
+
+
+###############
+##################################################################
+#Daten9:
+#BFI auch 1-7
+
+psych::describe(daten9 %>% select(extra, consc, neuro, agree,openn))
+
+daten9$big5_minp <- 0
+daten9$big5_maxp <- 7
+
+
+##################################################################
+#Daten10:
+#BFI auch 1-5
+
+psych::describe(daten10)
+daten10$big5_minp <- 1
+daten10$big5_maxp <- 5
+
+
+##################################################################
+#Daten11: SOIR 1-9
+
+psych::describe(daten11)
+names(daten11)
+
+daten11$soi_minp <- 1
+daten11$soi_maxp <- 9
+```
+
+### Test that all values are between min/max
+```{r}
+
+##############################################################################################
+#erneut alles zusammen fuegen um zu z-transformieren
+
+data_complete_all <- list(daten1, daten2, daten3, daten4, daten5, daten6, daten7, daten8, daten9, daten10, daten11) %>% map(~ mutate(., ID = as.character(ID))) %>% bind_rows() %>% as_tibble()
+
+outside_range <- function(vec, min, max) {
+   vec < min | vec > max
+}
+none <- function(df) {
+  nrow(df) == 0
+}
+data_complete_all %>% filter(
+  outside_range(extra, big5_minp, big5_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(agree, big5_minp, big5_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(neuro, big5_minp, big5_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(openn, big5_minp, big5_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(consc, big5_minp, big5_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(behavior, soi_minp, soi_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(attitude, soi_minp, soi_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(desire, soi_minp, soi_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+data_complete_all %>% filter(
+  outside_range(soir_full, soi_minp, soi_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+
+data_complete_all %>% filter(
+  outside_range(dominance, dominance_minp, dominance_maxp)
+) %>% none() %>% 
+  testthat::expect_true()
+```
+
+### Use min/max to compute POMP
+```{r}
+pomp <- function(raw, min, max) {
+    (raw - min)/(max-min)
+}
+
+data_complete_all <- data_complete_all %>%
+  mutate_at(vars(extra, agree, neuro, openn, consc), ~ pomp(., big5_minp, big5_maxp)) %>% 
+  mutate_at(vars(behavior, attitude, desire, soir_full), ~ pomp(., soi_minp, soi_maxp)) %>% 
+  mutate_at(vars(dominance), ~ pomp(., dominance_minp, dominance_maxp))
+
+data_complete_all %>% select(extra, agree, neuro, openn, consc, behavior, attitude, desire, soir_full, dominance) %>% gather(variable, value) %>% 
+  ggplot(aes(value)) + geom_histogram() + facet_wrap(~ variable)
+```
+
+## Calculate pf
+```{r}
+#Pf bilden
+data_complete_all$pf <- (scale(data_complete_all$f1)[,1] +
+  scale(data_complete_all$f2)[,1] +
+  scale(data_complete_all$f3)[,1] +
+  scale(data_complete_all$f4)[,1])/4
+```
+
+## Add labels
+```{r}
+library(labelled)
+var_label(data_complete_all$dominance) <- "Dominance"
+var_label(data_complete_all$neuro) <- "Neuroticism"
+var_label(data_complete_all$agree) <- "Agreeableness"
+var_label(data_complete_all$extra) <- "Extraversion"
+var_label(data_complete_all$openn) <- "Openness"
+var_label(data_complete_all$consc) <- "Conscientiousness"
+var_label(data_complete_all$soir_full) <- "Unrestricted sociosexuality"
+var_label(data_complete_all$f0) <- "Voice pitch"
+var_label(data_complete_all$pf) <- "Formants"
+data_complete_all$sex_c <- data_complete_all$sex
+data_complete_all$sex <- factor(if_else(data_complete_all$sex == 1, "male", "female"))
+contrasts(data_complete_all$sex) <- contr.helmert(2)
+var_label(data_complete_all$age) <- "Age"
+```
+
+
+### Save pre-standardisation
+```{r}
+data_complete_all_unstd <- data_complete_all
+rio::export(data_complete_all_unstd, "data_complete_2021_unstd_pomp.rds")
+```
+
+
+## Compute z-scores
+```{r}
+data_complete_all <- data_complete_all %>% mutate_at(vars(extra, agree, neuro, openn, consc, behavior, attitude, desire, soir_full, dominance, f0, f1, f2, f3, f4, pf), ~ scale(.)[,1])
+
+data_complete_all %>% select(extra, agree, neuro, openn, consc, behavior, attitude, desire, soir_full, dominance, f0, f1, f2, f3, f4, pf) %>% gather(variable, value) %>% 
+  ggplot(aes(value)) + geom_histogram() + facet_wrap(~ variable)
+```
+
+### Save data
+```{r}
+rio::export(data_complete_all, "data_complete_2021_zscored.rds")
+```
+
+
+## Standardize within dataset, re-add sex differences
+
+```{r}
+vcs <- data_complete_all_unstd
+vcs <- vcs %>% mutate_at(vars(extra, agree, neuro, openn, consc, behavior, attitude, desire, soir_full, dominance), ~ scale(.)[,1])
+
+# vcs10c <- rio::import("daten10_formants.rds")
+# vcs10 <- vcs %>% filter(dataset == 10)
+# vcs10 <- vcs10 %>% select(-(f0:f4)) %>% left_join(vcs10c)
+# vcs <- vcs %>% filter(dataset != 10) %>% 
+#   bind_rows(vcs10)
+```
+
+i) we first standardise within datasets
+```{r}
+svcs <- vcs %>% group_by(dataset) %>% 
+  mutate(f0 = scale(f0)[,1],
+         f1 = scale(f1)[,1],
+         f2 = scale(f2)[,1],
+         f3 = scale(f3)[,1],
+         f4 = scale(f4)[,1])
+```
+
+ii) we use the HQ datasets with both genders to estimate mean diff of m/f and restricted variance
+
+```{r}
+svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% ungroup() %>% 
+  summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
+
+svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(dataset) %>% 
+  summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
+
+svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(dataset, sex) %>% 
+  summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
+# not that much variation in sex diff across datasets, so we pool
+
+sex_diffs <- svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(sex) %>% 
+  summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
+sex_diffs
+```
+
+iii) we fudge the data in the single gender datasets `((x + gender_mean) * sd_gender)`
+
+```{r}
+svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(dataset, sex) %>% 
+  summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
+
+svcs <- svcs %>% 
+  left_join(sex_diffs, by = "sex") %>% 
+  mutate(f0 = if_else(!dataset %in% c(2,3, 5, 9),
+                      f0 * f0_sd + f0_mean, f0),
+         f1 = if_else(!dataset %in% c(2,3, 5, 9),
+                      f1 * f1_sd + f1_mean, f1),
+         f2 = if_else(!dataset %in% c(2,3, 5, 9),
+                      f2 * f2_sd + f2_mean, f2),
+         f3 = if_else(!dataset %in% c(2,3, 5, 9),
+                      f3 * f3_sd + f3_mean, f3),
+         f4 = if_else(!dataset %in% c(2,3, 5, 9),
+                      f4 * f4_sd + f4_mean, f4))
+
+svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(dataset, sex) %>% 
+  summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
+
+svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>% ungroup() %>% 
+  summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
+svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% ungroup() %>% 
+  summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
+```
+
+iv) then we average across f1 to f4 and standardise pf again
+```{r}
+svcs %>% ungroup() %>% 
+  summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
+
+svcs <- svcs %>% mutate(pf = scale(f1 + f2 + f3 + f4)[,1])
+```
+
+
+v) let's check intercorrelations in each dataset after this transformation
+
+```{r}
+vcs %>% select(dataset, f0:f4, sex_c) %>%
+  group_by(dataset) %>% 
+  mutate_at(vars(f0:f4),  ~resid(lm(. ~ sex_c, na.action = na.exclude))) %>% 
+  summarise(corrr::correlate(across(f0:f4)) %>% corrr::shave() %>% corrr::stretch()) %>% 
+  unite(vars, x, y) %>% 
+  drop_na() %>% 
+  ggplot(aes(dataset, r)) +
+  geom_text(aes(label = dataset)) + 
+  coord_flip() +
+  facet_wrap(~ vars)
+
+svcs %>% select(dataset, f0:f4, sex_c) %>% 
+  group_by(dataset) %>% 
+  mutate_at(vars(f0:f4),  ~resid(lm(. ~ sex_c, na.action = na.exclude))) %>% 
+  summarise(corrr::correlate(across(f0:f4)) %>% corrr::shave() %>% corrr::stretch()) %>% 
+  unite(vars, x, y) %>% 
+  drop_na() %>% 
+  ggplot(aes(dataset, r)) +
+  geom_text(aes(label = dataset)) + 
+  coord_flip() +
+  facet_wrap(~ vars)
+
+bind_rows(stdised = svcs %>% select(dataset, f0:f4, sex_c) %>% 
+  ungroup() %>% 
+  mutate_at(vars(f0:f4),  ~resid(lm(. ~ sex_c, na.action = na.exclude))) %>% 
+  summarise(corrr::correlate(across(f0:f4)) %>% corrr::shave() %>% corrr::stretch()) %>% 
+  unite(vars, x, y) %>% 
+  drop_na(),
+  
+  unstdised = vcs %>% select(dataset, f0:f4, sex_c) %>%
+  ungroup() %>% 
+  mutate_at(vars(f0:f4),  ~resid(lm(. ~ sex_c, na.action = na.exclude))) %>% 
+  summarise(corrr::correlate(across(f0:f4)) %>% corrr::shave() %>% corrr::stretch()) %>% 
+  unite(vars, x, y) %>% 
+  drop_na(), .id = "process") %>% 
+  ggplot(aes(process, r)) +
+  geom_text(aes(label = sprintf("%.2f", r))) + 
+  coord_flip() +
+  facet_wrap(~ vars)
+```
+
+vi) let's check how this looks compared to the simple approach
+```{r}
+svcs <- svcs %>% ungroup()
+vcs_2 <- svcs %>% select(voice_id, f0:f4, pf) %>%
+  inner_join(
+    data_complete_all %>% select(voice_id, f0:f4, pf), by = "voice_id", suffix = c("_within", "_std"))
+rcamisc::mtmm(vcs_2 %>% ungroup() %>% select(-voice_id))
+```
+
+
+### Distributions by dataset
+```{r}
+svcs$sex <- factor(if_else(svcs$sex_c == 1, "male", "female"))
+contrasts(svcs$sex) <- contr.helmert(2)
+
+ggplot(svcs, aes(f0, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+
+ggplot(svcs, aes(f1, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+
+ggplot(svcs, aes(f2, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+
+ggplot(svcs, aes(f3, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+
+ggplot(svcs, aes(f4, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+
+ggplot(svcs, aes(pf, fill = factor(dataset))) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  facet_wrap(~ sex, scales = "free_x") +
+  scale_fill_viridis_d()
+```
+
+### Save data
+```{r}
+rio::export(svcs, "data_complete_2021_within_zscored.rds")
+```
+
+
+## Outlier removal
+```{r}
+svcs <- data_complete_all
+svcs <- svcs %>%  group_by(sex) %>% 
+  mutate(pf_threshold_hi = median(pf, na.rm = T) + 2.5 * mad(pf, na.rm = T),
+         pf_threshold_lo = median(pf, na.rm = T) - 2.5 * mad(pf, na.rm = T),
+         f0_threshold_hi = median(f0, na.rm = T) + 2.5 * mad(f0, na.rm = T),
+         f0_threshold_lo = median(f0, na.rm = T) - 2.5 * mad(f0, na.rm = T))
+
+pf_outliers <- svcs %>% 
+  filter(pf < pf_threshold_lo | pf > pf_threshold_hi)
+nrow(pf_outliers)
+xtabs(~ dataset + sex, pf_outliers)
+
+f0_outliers <- svcs %>% 
+  filter(f0 < f0_threshold_lo | f0 > f0_threshold_hi)
+nrow(f0_outliers)
+xtabs(~ dataset + sex, f0_outliers)
+
+vcs <- svcs %>% filter(
+  pf > pf_threshold_lo, 
+  pf < pf_threshold_hi, 
+  f0 > f0_threshold_lo, 
+  f0 < f0_threshold_hi)
+
+psych::describeBy(vcs %>% ungroup() %>% select(sex_c, f0:f4, pf), vcs$dataset)
+```
+
+### Save data
+```{r}
+rio::export(vcs, "data_complete_2021_within_zscored_no_outliers.rds")
+```
