@@ -5,9 +5,9 @@ date: "2/7/2020"
 output: html_document
 ---
 
-
 ## Results
 
+- [Integration/Aggregation](0_aggregate_pomp.html) of individual datasets.
 - [Codebook](1_codebook.html):  The codebook contains metadata, means, missingness, correlations, sex differences, age trends, and further information on all variables in the study. We also provide a [codebook with unstandardised variables](1_codebook_before_standardisation.html).
 - [Preregistered tests](2_preregistered_tests.html)
 - [Exploratory analyses and robustness checks](3_exploratory_analyses.html)
@@ -21,28 +21,7 @@ library(r2d3)
 ```{r echo=F,message=F}
 library(tidyverse)
 author_voices <- rio::import("author_voices/measures.xlsx")
-vcs <- rio::import("data_complete_all_anonym_PfZ.xlsx")# %>% filter(dataset==1 | dataset == 10)
-# vcs2 <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
-# vcs <- vcs %>% left_join(vcs2, by = "voice_id")
-# cor.test(vcs$extra.x, vcs$extra.y)
-# cor.test(vcs$dominance.x, vcs$dominance.y)
-# cor.test(vcs$f0.x, vcs$f0.y)
-# cor.test(vcs$f1.x, vcs$f1.y)
-# cor.test(vcs$pf.x, vcs$pf.y)
-# psych::describe(vcs$f1)
-
-# vcs <- vcs %>% filter(dataset != 10, dataset != 2, dataset != 3)
-
-# psych::describe(vcs$f1)
-
-vcs <- vcs %>% mutate(pf = (scale(f1)+scale(f2)+scale(f3)+scale(f4))/4)
-
-# vcs <- vcs %>% mutate(pf=scale(pf))
-
-# median(vcs$pf,na.rm=T) + 2* mad(vcs$pf,na.rm=T)
-# median(vcs$f0,na.rm=T) + 2* mad(vcs$f0,na.rm=T)
-# qplot(vcs$f0)
-# vcs %>% filter(pf > (median(vcs$pf,na.rm=T) + 2* mad(vcs$pf,na.rm=T))) %>% select(dataset, pf, f0, sex)
+vcs <- rio::import("data_complete_2021_unstd_pomp.rds")
 
 author_voices <- author_voices %>%
   mutate(f0 = (`Mean F0` - mean(vcs$f0,na.rm=T))/sd(vcs$f0,na.rm=T),
@@ -51,39 +30,28 @@ author_voices <- author_voices %>%
          f3 = (f3 - mean(vcs$f3,na.rm=T))/sd(vcs$f3,na.rm=T),
          f4 = (f4 - mean(vcs$f4,na.rm=T))/sd(vcs$f4,na.rm=T),
          pf = (f1+f2+f3+f4)/4,
-         # pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
+         pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
          author = recode(Filename, "Lars.wav" = "LP",
                          "Davef" = "DF",
                          "christoph" = "CS",
                          "ruben" = "RCA",
                          "Julia" = "JS",
                          "amanda.wav" = "AH"),
-        pf_pos = pf + case_when(author == "RCA" ~ -0.05,
-                                author == "CS" ~ +0.05,
+        pf_pos = pf + case_when(author == "RCA" ~ 0,
+                                author == "CS" ~ 0,
                                 TRUE ~ 0))
-# 
-#  for(i in 1:nrow(author_voices)) {
-#    av::av_audio_convert(paste0("author_voices/", author_voices$Filename[i]), 
-#                         paste0("author_voices/", author_voices$author[i], ".mp3"))
-#  }
 ```
 
 To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U". The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).
 
 ```{r echo=F}
-options = list(margin = 50,
-               barPadding = 0.1,
-               colour = "rgba(255,0,0,1)",
-               hovercolour = "rgba(50,50,50,1)",
-               xLabel = "x label",
-               yLabel = "y label",
-               xmin = max(author_voices$f0),
-               xmax = max(author_voices$f0),
-               ymin = min(author_voices$pf),
-               ymax = max(author_voices$pf),
-               chartTitle = "Chart Title"
-     )
-data <- vcs %>% mutate(f0 = scale(f0)) %>% full_join(author_voices %>% mutate(voice_id=1e5+row_number()), suffix = c("_vcs", ""), by = "voice_id")
+vcs <- rio::import("data_complete_2021_within_zscored_no_outliers.rds")
+vcs$sex <- vcs$sex_c
+
+data <- vcs %>% 
+  # mutate(f0 = scale(f0), pf = scale(pf)) %>%
+  full_join(author_voices %>% mutate(voice_id=1e5+row_number()), suffix = c("_vcs", ""), by = "voice_id")
+
 data$x <- data$f0
 data$y <- data$pf
 
