@@ -20,8 +20,8 @@ library(r2d3)
 ## Voice pitch and formants
 ```{r echo=F,message=F}
 library(tidyverse)
-author_voices <- readxl::read_excel("author_voices/measures.xlsx")
-vcs <- readxl::read_excel("data_complete_all_anonym_PfZ.xlsx")# %>% filter(dataset==1 | dataset == 10)
+author_voices <- rio::import("author_voices/measures.xlsx")
+vcs <- rio::import("data_complete_all_anonym_PfZ.xlsx")# %>% filter(dataset==1 | dataset == 10)
 # vcs2 <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
 # vcs <- vcs %>% left_join(vcs2, by = "voice_id")
 # cor.test(vcs$extra.x, vcs$extra.y)
@@ -31,7 +31,7 @@ vcs <- readxl::read_excel("data_complete_all_anonym_PfZ.xlsx")# %>% filter(datas
 # cor.test(vcs$pf.x, vcs$pf.y)
 # psych::describe(vcs$f1)
 
-vcs <- vcs %>% filter(dataset != 10, dataset != 2, dataset != 3)
+# vcs <- vcs %>% filter(dataset != 10, dataset != 2, dataset != 3)
 
 # psych::describe(vcs$f1)
 
