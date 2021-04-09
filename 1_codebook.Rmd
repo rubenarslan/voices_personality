@@ -52,6 +52,17 @@ var_label(vcs$age) <- "Age"
 codebook(vcs)
 ```
 
+```{r}
+knitr::opts_chunk$set(
+  warning = TRUE, # show warnings during codebook generation
+  message = TRUE, # show messages during codebook generation
+  error = TRUE, # do not interrupt codebook generation in case of errors,
+                # usually makes debugging easier, and sometimes half a codebook
+                # is better than none
+  echo = TRUE  # show the R code
+)
+```
+
 ## Gender differences
 ```{r}
 library(ggstatsplot)
