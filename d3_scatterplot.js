@@ -34,13 +34,13 @@ svg.append("text")
   .attr("transform", "translate(" + (width/2) + " ," + (height+1.8*margin) + ")")
   .attr("dx", "1em") .style("text-anchor", "middle")
   .style("font-family", "Helvetica, Arial, sans-serif")
-  .style("font-size", "12pt") .text(options.xLabel);
+  .style("font-size", "16pt") .text(options.xLabel);
 
 svg.append("text") .attr("transform", "translate(" + 0 + " ," + ((height+2*margin)/2) + ") rotate(-90)")
   .attr("dy", "1em")
   .style("text-anchor", "middle")
   .style("font-family", "Helvetica, Arial, sans-serif")
-  .style("font-size", "12pt")
+  .style("font-size", "16pt")
   .text(options.yLabel);
 
 //Create the chart title
@@ -49,7 +49,7 @@ svg.append("text")
   .attr("y", (margin/2))
   .attr("text-anchor", "middle")
   .attr("dx", "1em")
-  .style("font-size", "16pt")
+  .style("font-size", "20pt")
   .style("font-family", "Helvetica, Arial, sans-serif")
   .text(options.chartTitle);
 
