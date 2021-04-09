@@ -114,17 +114,17 @@ used to create them.
 <details><summary>Here's a classical session info.</summary>
 
 ```{r}
-# library(tidyverse)
-# library(knitr)
-# library(brms)
-# library(sjPlot)
-# library(bayestestR)
-# library(labelled)
-# library(cowplot)
-# library(labelled)
-# library(codebook)
-# library(ggstatsplot)
-# sessionInfo()
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+library(cowplot)
+library(labelled)
+library(codebook)
+library(ggstatsplot)
+sessionInfo()
 ```
 
 </details>
@@ -135,23 +135,4 @@ used to create them.
 cat(readLines("renv.lock"), sep = "\n")
 ```
 </details>
-
-
-```{r}
-# library(rPraat)
-# library(tidyverse)
-# library(dygraphs)
-# wav <- snd.read("author_voices/RCA.mp3")
-# snd.plot(wav) %>% dyAxis("y", label = "Amplitude")
-# pt <- as.pitch(wav)
-# 
-# pt.plot(as.pt(wav))
-# pitch.plot(pt, scaleIntensity = TRUE, showStrength = TRUE)
-# 
-# wav <- snd.read("author_voices/RCA.mp3")
-# 
-# soundgen::analyze("author_voices/ruben.wav", samplingRate = 16000, priorSD = 24, 
-#             pitchMethods = c('autocor', 'cep', 'dom', 'spec', 'hps'),
-#             plot = TRUE, ylim = c(0, 4))
-```
 
