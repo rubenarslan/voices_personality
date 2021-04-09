@@ -18,10 +18,32 @@ library(r2d3)
 
 
 ## Voice pitch and formants
-```{r echo=F}
+```{r echo=F,message=F}
 library(tidyverse)
-author_voices <- rio::import("author_voices/acoustics.xlsx")
-vcs <- rio::import("data_complete_untrans2.xlsx")
+author_voices <- readxl::read_excel("author_voices/measures.xlsx")
+vcs <- readxl::read_excel("data_complete_all_anonym_PfZ.xlsx")# %>% filter(dataset==1 | dataset == 10)
+# vcs2 <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
+# vcs <- vcs %>% left_join(vcs2, by = "voice_id")
+# cor.test(vcs$extra.x, vcs$extra.y)
+# cor.test(vcs$dominance.x, vcs$dominance.y)
+# cor.test(vcs$f0.x, vcs$f0.y)
+# cor.test(vcs$f1.x, vcs$f1.y)
+# cor.test(vcs$pf.x, vcs$pf.y)
+# psych::describe(vcs$f1)
+
+vcs <- vcs %>% filter(dataset != 10, dataset != 2, dataset != 3)
+
+# psych::describe(vcs$f1)
+
+vcs <- vcs %>% mutate(pf = (scale(f1)+scale(f2)+scale(f3)+scale(f4))/4)
+
+# vcs <- vcs %>% mutate(pf=scale(pf))
+
+# median(vcs$pf,na.rm=T) + 2* mad(vcs$pf,na.rm=T)
+# median(vcs$f0,na.rm=T) + 2* mad(vcs$f0,na.rm=T)
+# qplot(vcs$f0)
+# vcs %>% filter(pf > (median(vcs$pf,na.rm=T) + 2* mad(vcs$pf,na.rm=T))) %>% select(dataset, pf, f0, sex)
+
 author_voices <- author_voices %>%
   mutate(f0 = (`Mean F0` - mean(vcs$f0,na.rm=T))/sd(vcs$f0,na.rm=T),
          f1 = (f1 - mean(vcs$f1,na.rm=T))/sd(vcs$f1,na.rm=T),
@@ -31,10 +53,10 @@ author_voices <- author_voices %>%
          pf = (f1+f2+f3+f4)/4,
          # pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
          author = recode(Filename, "Lars.wav" = "LP",
-                         "Puts.wav" = "DAP",
-                         "christoph.wav" = "CS",
-                         "ruben.wav" = "RCA",
-                         "Julia.wav" = "JS",
+                         "Davef" = "DAP",
+                         "christoph" = "CS",
+                         "ruben" = "RCA",
+                         "Julia" = "JS",
                          "amanda.wav" = "AH"),
         pf_pos = pf + case_when(author == "RCA" ~ -0.05,
                                 author == "CS" ~ +0.05,
@@ -61,9 +83,7 @@ options = list(margin = 50,
                ymax = max(author_voices$pf),
                chartTitle = "Chart Title"
      )
-vcs <- rio::import("data_complete_all_anonym_allZ_unfiltered.xlsx")
-
-data <- vcs %>% full_join(author_voices %>% mutate(voice_id=1e5+row_number()), suffix = c("_vcs", ""), by = "voice_id")
+data <- vcs %>% mutate(f0 = scale(f0)) %>% full_join(author_voices %>% mutate(voice_id=1e5+row_number()), suffix = c("_vcs", ""), by = "voice_id")
 data$x <- data$f0
 data$y <- data$pf
 
@@ -77,11 +97,11 @@ options <- list(margin = 50,
                xmax = max(data$x, data$f0_vcs, na.rm = T),
                ymin = min(data$y, data$pf_vcs, na.rm = T),
                ymax = max(data$y, data$pf_vcs, na.rm = T),
-               chartTitle = "Authors' voices"
+               chartTitle = "Voices"
      )
 ```
 
-```{r echo=F, fig.width=6,fig.height=5}
+```{r echo=F, fig.width=9.7,fig.height=5}
 r2d3(data=data, options = options, script = "d3_scatterplot.js")
 ```
 
@@ -94,17 +114,17 @@ used to create them.
 <details><summary>Here's a classical session info.</summary>
 
 ```{r}
-library(tidyverse)
-library(knitr)
-library(brms)
-library(sjPlot)
-library(bayestestR)
-library(labelled)
-library(cowplot)
-library(labelled)
-library(codebook)
-library(ggstatsplot)
-sessionInfo()
+# library(tidyverse)
+# library(knitr)
+# library(brms)
+# library(sjPlot)
+# library(bayestestR)
+# library(labelled)
+# library(cowplot)
+# library(labelled)
+# library(codebook)
+# library(ggstatsplot)
+# sessionInfo()
 ```
 
 </details>
@@ -115,3 +135,23 @@ sessionInfo()
 cat(readLines("renv.lock"), sep = "\n")
 ```
 </details>
+
+
+```{r}
+# library(rPraat)
+# library(tidyverse)
+# library(dygraphs)
+# wav <- snd.read("author_voices/RCA.mp3")
+# snd.plot(wav) %>% dyAxis("y", label = "Amplitude")
+# pt <- as.pitch(wav)
+# 
+# pt.plot(as.pt(wav))
+# pitch.plot(pt, scaleIntensity = TRUE, showStrength = TRUE)
+# 
+# wav <- snd.read("author_voices/RCA.mp3")
+# 
+# soundgen::analyze("author_voices/ruben.wav", samplingRate = 16000, priorSD = 24, 
+#             pitchMethods = c('autocor', 'cep', 'dom', 'spec', 'hps'),
+#             plot = TRUE, ylim = c(0, 4))
+```
+
