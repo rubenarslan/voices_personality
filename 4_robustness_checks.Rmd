@@ -97,7 +97,7 @@ __Interpretation:__ Little difference across dataset specifications (whether sta
 h1_simple <- brm(dominance ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          control = control, save_mevars = TRUE, 
           file = "models/dominance/h1_simple")
 
 h1_simple_within <- update(h1_simple, newdata = vcs_within, recompile = TRUE, silent = 2, refresh = 0)
@@ -158,7 +158,7 @@ __Interpretation:__ Little difference across dataset specifications (whether sta
 h1_simple <- brm(extra ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          control = control, save_mevars = TRUE, 
           file = "models/extra/h1_simple")
 
 
@@ -221,7 +221,7 @@ __Interpretation:__ Little difference across dataset specifications (whether sta
 h1_simple <- brm(agree ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          control = control, save_mevars = TRUE, 
           file = "models/agree/h1_simple")
 
 
@@ -282,7 +282,7 @@ __Interpretation:__ Little difference across dataset specifications (whether sta
 h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          control = control, save_mevars = TRUE, 
           file = "models/behavior/h1_simple")
 
 
@@ -387,7 +387,7 @@ h1_f0bysex <- brm(extra ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
 
 h1_men
 h1_women
-equivalence_test(h1_f0bysex)
+equivalence_test(h1_f0bysex, ci = 0.89)
 ```
 
 
@@ -419,7 +419,7 @@ h1_f0bysex <- brm(agree ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
           file = "models/agree/h1_f0bysex")
 h1_men
 h1_women
-equivalence_test(h1_f0bysex)
+equivalence_test(h1_f0bysex, ci = 0.89)
 ```
 
 
@@ -446,7 +446,7 @@ h1_f0bysex <- brm(dominance ~ f0*sex + age + (1 | dataset), data = vcs,
 
 h1_men
 h1_women
-equivalence_test(h1_f0bysex)
+equivalence_test(h1_f0bysex, ci = 0.89)
 ```
 
 ## SOI-R behavior, separate by sex
@@ -477,5 +477,5 @@ h1_f0bysex <- brm(behavior ~ f0*sex + age + (1 | dataset), data = vcs,
 
 h1_men
 h1_women
-equivalence_test(h1_f0bysex)
+equivalence_test(h1_f0bysex, ci = 0.89)
 ```
