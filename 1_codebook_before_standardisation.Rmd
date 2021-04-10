@@ -29,17 +29,16 @@ ggplot2::theme_set(ggplot2::theme_bw())
 ## Load data
 
 ```{r}
-vcs <- rio::import("data_complete_2021_unstd_pomp.rds")
+vcs <- rio::import("data_complete_2021_unstd_pomp.rds") %>% select(-ID, -contains("_minp"), -contains("_maxp"))
 var_label(vcs$dominance) <- "Dominance"
 var_label(vcs$neuro) <- "Neuroticism"
 var_label(vcs$agree) <- "Agreeableness"
 var_label(vcs$extra) <- "Extraversion"
 var_label(vcs$openn) <- "Openness"
 var_label(vcs$consc) <- "Conscientiousness"
-var_label(vcs$soi_full) <- "Unrestricted sociosexuality"
+var_label(vcs$soir_full) <- "Unrestricted sociosexuality"
 var_label(vcs$f0) <- "Voice pitch"
 var_label(vcs$pf) <- "Formants"
-vcs$sex_c <- vcs$sex
 vcs$sex <- haven::labelled(vcs$sex_c, labels = c("male" = 1, "female" = -1),
                           label = "Sex")
 set.seed(1)
@@ -49,7 +48,8 @@ var_label(vcs$age) <- "Age"
 ## Codebook
 
 ```{r}
-codebook(vcs)
+vcs_unstd <- vcs
+codebook(vcs_unstd)
 ```
 
 ## Gender differences
@@ -78,7 +78,7 @@ ggbetweenstats(vcs, sex, agree) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
 ggbetweenstats(vcs, sex, openn) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
-ggbetweenstats(vcs, sex, soi_full) +
+ggbetweenstats(vcs, sex, soir_full) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
 ggbetweenstats(vcs, sex, behavior) +
   scale_color_viridis_d("Sex", breaks = c(-1,1), labels = c("female", "male")) 
