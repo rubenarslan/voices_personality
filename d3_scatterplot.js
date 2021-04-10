@@ -71,7 +71,7 @@ svg.append("text")
             .style("fill", function(d) {
               return d.sex == 1 ? "black" : "#40A5BF";
               })
-            .style("opacity", "0.1");
+            .style("opacity", "0.2");
 
   var gdots =  svg.selectAll("g.dot")
             .data(data.filter(function(d) { return d.x !== null }))

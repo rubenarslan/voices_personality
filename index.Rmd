@@ -9,8 +9,9 @@ output: html_document
 
 - [Integration/Aggregation](0_aggregate_pomp.html) of individual datasets.
 - [Codebook](1_codebook.html):  The codebook contains metadata, means, missingness, correlations, sex differences, age trends, and further information on all variables in the study. We also provide a [codebook with unstandardised variables](1_codebook_before_standardisation.html).
-- [Preregistered tests](2_preregistered_tests.html)
-- [Exploratory analyses and robustness checks](3_exploratory_analyses.html)
+- [Preregistered tests](2_preregistered_tests.html) for preregistered outcomes (dominance, extraversion, agreeableness, SOI behavior)
+- [Exploratory analyses](3_exploratory_analyses.html) for additional outcomes.
+- [Robustness checks](4_robustness_checks.html) for the preregistered outcomes.
 
 ```{r setup,echo=F}
 library(r2d3)
@@ -45,7 +46,7 @@ author_voices <- author_voices %>%
 To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U". The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).
 
 ```{r echo=F}
-vcs <- rio::import("data_complete_2021_within_zscored_no_outliers.rds")
+vcs <- rio::import("data_complete_2021_zscored_no_outliers.rds")
 vcs$sex <- vcs$sex_c
 
 data <- vcs %>% 
