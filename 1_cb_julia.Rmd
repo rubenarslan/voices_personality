@@ -1,0 +1,89 @@
+---
+title: "Codebook"
+author: "Ruben Arslan"
+date: "3/13/2019"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+```{r setup, warning=FALSE, message = FALSE}
+library(labelled)
+library(tidyverse)
+knitr::opts_chunk$set(
+  warning = FALSE, # show warnings during codebook generation
+  message = FALSE, # show messages during codebook generation
+  error = TRUE, # do not interrupt codebook generation in case of errors,
+                # usually makes debugging easier, and sometimes half a codebook
+                # is better than none
+  echo = FALSE  # don't show the R code
+)
+ggplot2::theme_set(ggplot2::theme_bw())
+```
+
+## Load data
+
+```{r}
+vcs <- rio::import("formants.xlsx")
+
+vcs <- vcs %>% 
+  mutate(id = row_number()) %>% 
+  select(-starts_with("file"), -starts_with("File")) %>% 
+  gather(key, value, -id) %>% 
+  mutate(formant = str_sub(key, 1,2),
+         stimulus = str_sub(key, 3)) %>% 
+  select(-key) %>% 
+  spread(formant, value) %>% 
+  mutate(stimulus = factor(recode(stimulus, "a" = "text", "b" = "weather", "c" = "vowels" ))) %>% 
+  tibble()
+```
+
+
+## Distributions by dataset
+```{r}
+ggplot(vcs, aes(f0, fill = stimulus)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f1, fill = stimulus)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f2, fill = stimulus)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f3, fill = stimulus)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d()
+
+ggplot(vcs, aes(f4, fill = stimulus)) + 
+  geom_histogram(position = "identity", alpha = 0.4)+
+  scale_fill_viridis_d()
+
+psych::describeBy(vcs %>% select(f0:f4), vcs$stimulus)
+
+summary(lme4::lmer(f0 ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f1 ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f2 ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f3 ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f4 ~ (1|stimulus) + (1 | id), vcs))
+
+summary(lme4::lmer(scale(f0) ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(scale(f1) ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(scale(f2) ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(scale(f3) ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(scale(f4) ~ (1|stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f0 ~ stimulus + (1 | id), vcs))
+summary(lme4::lmer(f1 ~ stimulus + (1 | id), vcs))
+summary(lme4::lmer(f2 ~ (stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f3 ~ (stimulus) + (1 | id), vcs))
+summary(lme4::lmer(f4 ~ (stimulus) + (1 | id), vcs))
+
+vcs_wide <- vcs %>% gather(key, value, -id, -stimulus) %>% unite(key, key, stimulus) %>% spread(key, value) %>% select(-id)
+rcamisc::mtmm(vcs_wide)
+```
