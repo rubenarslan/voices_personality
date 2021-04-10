@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,message=F)
+knitr::opts_chunk$set(echo = TRUE,message=F,error = T)
 library(tidyverse)
 library(knitr)
 library(brms)
@@ -109,7 +109,7 @@ __Decisions upon visual diagnosis:__
 h0 <- brm(neuro ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/neuro/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -118,7 +118,7 @@ h0 <- brm(neuro ~ sex + age + (1 | dataset), data = vcs,
 h1_simple <- brm(neuro ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/neuro/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -138,7 +138,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -190,7 +190,7 @@ __Decisions upon visual diagnosis:__
 h0 <- brm(openn ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/openn/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -199,7 +199,7 @@ h0 <- brm(openn ~ sex + age + (1 | dataset), data = vcs,
 h1_simple <- brm(openn ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/openn/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -219,7 +219,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -272,7 +272,7 @@ __Decisions upon visual diagnosis:__
 h0 <- brm(consc ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/consc/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -281,7 +281,7 @@ h0 <- brm(consc ~ sex + age + (1 | dataset), data = vcs,
 h1_simple <- brm(consc ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/consc/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -301,7 +301,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -357,7 +357,7 @@ Visually, there could be an interaction between sex and f0.
 h0 <- brm(desire ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/desire/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -366,7 +366,7 @@ h0 <- brm(desire ~ sex + age + (1 | dataset), data = vcs,
 h1_simple <- brm(desire ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/desire/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -386,7 +386,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -441,7 +441,7 @@ Visually, there could be an interaction between sex and f0.
 h0 <- brm(attitude ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/attitude/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -450,7 +450,7 @@ h0 <- brm(attitude ~ sex + age + (1 | dataset), data = vcs,
 h1_simple <- brm(attitude ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
           file = "models/attitude/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
@@ -470,7 +470,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -488,7 +488,7 @@ plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), lab
 
 ### Visually diagnose non-linearity
 ```{r,warning=FALSE}
-ggplot(vcs, aes(f0, soi_full)) + 
+ggplot(vcs, aes(f0, soir_full)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
   geom_smooth(aes(colour = sex, fill = sex), method = "gam",
@@ -496,7 +496,7 @@ ggplot(vcs, aes(f0, soi_full)) +
   scale_color_viridis_d("Sex") +
   scale_fill_viridis_d("Sex") 
 
-ggplot(vcs, aes(pf, soi_full)) + 
+ggplot(vcs, aes(pf, soir_full)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
   geom_smooth(aes(colour = sex, fill = sex), method = "gam",
@@ -504,7 +504,7 @@ ggplot(vcs, aes(pf, soi_full)) +
   scale_color_viridis_d("Sex") +
   scale_fill_viridis_d("Sex") 
 
-ggplot(vcs, aes(age*10, soi_full)) + 
+ggplot(vcs, aes(age*10, soir_full)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   scale_x_continuous("Age") +
   geom_smooth(method = "gam", colour = "black", formula = y ~ s(x)) +
@@ -522,20 +522,20 @@ Visually, there could be an interaction between sex and f0.
 
 ### Models
 ```{r}
-h0 <- brm(soi_full ~ sex + age + (1 | dataset), data = vcs,
+h0 <- brm(soir_full ~ sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/soi_full/h0") %>% 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/soir_full/h0") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
 
-h1_simple <- brm(soi_full ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+h1_simple <- brm(soir_full ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
           iter = iter, warmup = warmup, chains = chains, cores = chains,
           prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/soi_full/h1_simple") %>% 
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/soir_full/h1_simple") %>% 
   add_criterion("loo") %>% 
   add_criterion("bayes_R2") %>% 
   add_criterion("loo_R2") 
@@ -554,7 +554,7 @@ sjPlot::tab_model(h1_simple, bpe = "mean",show.ngroups = T,ci.hyphen = ";",
 summary(h1_simple)
 conditional_effects(h1_simple)
 # conditional_smooths(h1_after_diagnosis)
-equiv_test <- equivalence_test(h1_simple, range = c(-0.1, 0.1))
+equiv_test <- equivalence_test(h1_simple, ci = 0.89, range = c(-0.1, 0.1))
 equiv_test_table <- equiv_test %>% 
   mutate(Parameter = recode(Parameter, !!!effect_labels)) %>% 
   mutate(
@@ -567,155 +567,6 @@ plot(equiv_test) + scale_y_discrete("Effect", breaks = names(effect_labels), lab
 
 </details>
 
-
-## Extraversion, adjusted for dominance
-```{r}
-extra_adj_for_dominance <- brm(extra ~ dominance + f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter + 1000, warmup = warmup + 1000, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/extra/extra_adj_for_dominance2")
-extra_adj_for_dominance
-```
-
-## Dominance, adjusted for extraversion
-```{r}
-dominance_adj_for_extra <- brm(dominance ~ extra  + f0 + pf + sex + age + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/dominance/dominance_adj_for_extra")
-dominance_adj_for_extra
-```
-
-## SOI-R Behavior adj. for extraversion
-```{r}
-behavior_adj_for_extra <- brm(behavior ~ extra  + f0 + pf + sex + age + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/behavior/behavior_adj_for_extra")
-behavior_adj_for_extra
-```
-
-
-## Extraversion, separate by sex
-```{r}
-h1_men <- brm(extra ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex == "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/extra/h1_men")
-
-h1_women <- brm(extra ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex != "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/extra/h1_women")
-
-h1_f0bysex <- brm(extra ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/extra/h1_f0bysex")
-
-h1_men
-h1_women
-equivalence_test(h1_f0bysex)
-```
-
-
-## Agreeableness, separate by sex
-```{r}
-h1_men <- brm(agree ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex == "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/agree/h1_men") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-h1_women <- brm(agree ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex != "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/agree/h1_women") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-
-h1_f0bysex <- brm(agree ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/agree/h1_f0bysex")
-h1_men
-h1_women
-equivalence_test(h1_f0bysex)
-```
-
-
-## Dominance, separate by sex
-```{r}
-h1_men <- brm(dominance ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex == "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/dominance/h1_men")
-
-h1_women <- brm(dominance ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex != "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/dominance/h1_women")
-
-h1_f0bysex <- brm(dominance ~ f0*sex + age + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, 
-          file = "models/dominance/h1_f0bysex")
-
-
-h1_men
-h1_women
-equivalence_test(h1_f0bysex)
-```
-
-## SOI-R behavior, separate by sex
-```{r}
-h1_men <- brm(behavior ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex == "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/behavior/h1_men") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-h1_women <- brm(behavior ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex != "male"),
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, save_mevars = TRUE, 
-          file = "models/behavior/h1_women") %>% 
-  add_criterion("loo") %>% 
-  add_criterion("bayes_R2") %>% 
-  add_criterion("loo_R2") 
-
-h1_f0bysex <- brm(behavior ~ f0*sex + age + (1 | dataset), data = vcs,
-          iter = iter, warmup = warmup, chains = chains, cores = chains,
-          prior = priors,
-          control = control, 
-          file = "models/behavior/h1_f0bysex")
-
-h1_men
-h1_women
-equivalence_test(h1_f0bysex)
-```
-
-
-
 ## Summary of results
 ### Models
 ```{r exploratoryresults,fig.width=8, fig.height=10}
@@ -724,7 +575,7 @@ neuro <- readRDS("models/neuro/h1_simple.rds")
 consc <- readRDS("models/consc/h1_simple.rds")
 desire <- readRDS("models/desire/h1_simple.rds")
 attitude <- readRDS("models/attitude/h1_simple.rds")
-soi_full <- readRDS("models/soi_full/h1_simple.rds")
+soir_full <- readRDS("models/soir_full/h1_simple.rds")
 theme_set(theme_cowplot())
 
 modify <- function(outcome) {
@@ -741,26 +592,26 @@ remove_x_axis <- list(
         axis.line.x = element_blank())
 )
 
-p_extra <- plot(equivalence_test(neuro, parameters = c("b_f0", "b_pf", "b_sex1"))) + modify("Neuroticism") + remove_x_axis
-p_openn <- plot(equivalence_test(openn, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+p_extra <- plot(equivalence_test(neuro, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89)) + modify("Neuroticism") + remove_x_axis
+p_openn <- plot(equivalence_test(openn, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89)) +
   modify("Openness") + remove_x_axis
-p_consc <- plot(equivalence_test(consc, parameters = c("b_f0", "b_pf", "b_sex1")))  +
+p_consc <- plot(equivalence_test(consc, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89))  +
   modify("Conscientiousness") + remove_x_axis
-p_attitude <- plot(equivalence_test(attitude, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+p_attitude <- plot(equivalence_test(attitude, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89)) +
   modify("SOI-R attitude") + remove_x_axis
-p_desire <- plot(equivalence_test(desire, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+p_desire <- plot(equivalence_test(desire, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89)) +
   modify("SOI-R desire") + remove_x_axis
-p_soi_full <- plot(equivalence_test(soi_full, parameters = c("b_f0", "b_pf", "b_sex1"))) +
+p_soir_full <- plot(equivalence_test(soir_full, parameters = c("b_f0", "b_pf", "b_sex1"), ci = 0.89)) +
   modify("Sociosexuality") + xlim(c(-0.5, 0.4))
 legend <- get_legend(
-  p_extra + 
+  p_soir_full + 
     guides(fill = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom", legend.justification = "center")
 )
 
 neg_spacer <- -0.155
 plot_grid(ncol = 1,  rel_heights = c(1, neg_spacer, 1, neg_spacer, 1,neg_spacer, 1,neg_spacer, 1, neg_spacer, 1.1, .15), align = "v", axis = "b",
-          p_extra, NULL, p_openn,NULL, p_consc,NULL, p_attitude, NULL, p_desire, NULL, p_soi_full, legend)
+          p_extra, NULL, p_openn,NULL, p_consc,NULL, p_attitude, NULL, p_desire, NULL, p_soir_full, legend)
 ggsave("exploratory_rope.pdf", width = 8, height = 10)
 ```
 
@@ -794,7 +645,7 @@ coefs
 
 coefs <- bind_rows(get_coefs(neuro), 
                    get_coefs(openn), get_coefs(consc), get_coefs(desire),
-                   get_coefs(attitude),get_coefs(soi_full))
+                   get_coefs(attitude),get_coefs(soir_full))
 
 wide_coefs <- coefs %>% 
   mutate(Estimate = paste0(Estimate, " [", `l-95% CI`, ";", `u-95% CI`, "]")) %>% 
@@ -807,7 +658,7 @@ wide_coefs <- coefs %>%
   mutate(group = fct_inorder(group))
 
 outcome_names <- c("Neuroticism" = "neuro", "Conscientiousness" = "consc",
-                   "Openness" = "openn", "Sociosexuality" = "soi_full",
+                   "Openness" = "openn", "Sociosexuality" = "soir_full",
                    "SOI-R desire" = "desire", "SOI-R attitude" = "attitude")
 
 library(kableExtra)
@@ -828,7 +679,7 @@ wide_coefs %>%
 
 ```{r}
 outcome_names <- c("Neuroticism" = "neuro", "Conscientiousness" = "consc",
-                   "Openness" = "openn", "Sociosexuality" = "soi_full",
+                   "Openness" = "openn", "Sociosexuality" = "soir_full",
                    "SOI-R desire" = "desire", "SOI-R attitude" = "attitude")
 
 neuro <- ggplot(vcs, aes(f0, neuro)) + 
@@ -865,7 +716,7 @@ openn <- ggplot(vcs, aes(f0, openn)) +
         plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
 
 
-soi_full <- ggplot(vcs, aes(f0, soi_full)) + 
+soir_full <- ggplot(vcs, aes(f0, soir_full)) + 
   geom_jitter(aes(colour = sex), alpha = 0.3) +
   geom_smooth(aes(colour = sex, fill = sex), method = "lm") +
   scale_color_manual("Sex", values = c("#40A5BF", "black")) +
@@ -900,7 +751,7 @@ attitude <- ggplot(vcs, aes(f0, attitude)) +
   theme(panel.spacing = unit(c(0), "cm"),
         plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"))
 
-plot_grid(ncol = 2,  openn, neuro, consc, soi_full, attitude, desire,
+plot_grid(ncol = 2,  openn, neuro, consc, soir_full, attitude, desire,
           align = "hv")
 ggsave("scatterplots_exploratory.pdf", width = 8, height = 8)
 ```

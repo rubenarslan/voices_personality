@@ -1,0 +1,481 @@
+---
+title: "Robustness checks"
+author: "Ruben Arslan"
+date: "10/4/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: "hide"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message=F)
+library(tidyverse)
+library(knitr)
+library(brms)
+library(sjPlot)
+library(bayestestR)
+library(labelled)
+library(cowplot)
+theme_set(theme_bw())
+```
+
+## Load data
+
+```{r}
+vcs <- rio::import("data_complete_2021_zscored.rds")
+vcs <- vcs %>% 
+  mutate(
+    age = if_else(dataset == 9, 20, age)/10,
+    age_se = if_else(dataset == 9, 3, 0.5)/10
+  )
+
+vcs <- vcs %>% filter(!is.na(f0), !is.na(pf), !is.na(age))
+vcs_novowels <- vcs %>% filter(! dataset %in% c(1, 10))
+xtabs(~ is.na(dominance) + sex, vcs_novowels)
+
+xtabs(~ is.na(extra) + sex, vcs_novowels)
+
+vcs_within <- rio::import("data_complete_2021_within_zscored.rds")
+
+vcs_nooutlier <- rio::import("data_complete_2021_zscored_no_outliers.rds")
+
+
+var_label(vcs$dominance) <- "Dominance"
+var_label(vcs$neuro) <- "Neuroticism"
+var_label(vcs$agree) <- "Agreeableness"
+var_label(vcs$extra) <- "Extraversion"
+var_label(vcs$openn) <- "Openness"
+var_label(vcs$consc) <- "Conscientiousness"
+var_label(vcs$soir_full) <- "Unrestricted sociosexuality"
+var_label(vcs$f0) <- "Voice pitch"
+var_label(vcs$pf) <- "Formants"
+vcs$sex_c <- vcs$sex
+contrasts(vcs$sex) <- contr.helmert(2)
+var_label(vcs$sex) <- "Sex"
+set.seed(1)
+var_label(vcs$age) <- "Age"
+
+vcs_nooutlier <- vcs_nooutlier %>% 
+  mutate(
+    age = if_else(dataset == 9, 20, age)/10,
+    age_se = if_else(dataset == 9, 3, 0.5)/10
+  )
+
+vcs_within <- vcs_within %>% 
+  mutate(
+    age = if_else(dataset == 9, 20, age)/10,
+    age_se = if_else(dataset == 9, 3, 0.5)/10
+  )
+
+warmup <- 2000
+iter <- warmup + 2000
+chains <- 4
+control <- list(adapt_delta = 0.99)
+priors <- c(
+  prior(normal(0, 3), class = b)
+)
+library(brms)
+options(mc.cores = parallel::detectCores(), brms.backend = "cmdstanr")
+rstan::rstan_options(auto_write = TRUE)
+
+variable_labels <- c("Intercept"= "Intercept",  "sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "f0" = "Voice pitch (f0)", "pf" = " Formant position (Pf)", "age" = "Age", "f0:sex1" = "Voice pitch (f0) × Sex")
+effect_labels <- c("b_Intercept"= "Intercept",  "b_sex1" = "Sex [male]", "bsp_meageage_se" = "Age±SE", "b_f0" = "Voice pitch (f0)", "b_pf" = " Formant position (Pf)", "b_age" = "Age", "b_f0.sex1" = "Voice pitch (f0) × Sex")
+```
+
+
+
+## Check Hypothesis 1: Dominance
+
+Participants with lower voice pitch will have a more dominant personality.
+
+__Interpretation:__ Little difference across dataset specifications (whether standardized globally, within dataset, whether outliers or vowel-based data were omitted). No clear effect of individual formants (f1-f4).
+
+### Models
+```{r}
+h1_simple <- brm(dominance ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/dominance/h1_simple")
+
+h1_simple_within <- update(h1_simple, newdata = vcs_within, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_nooutlier <- update(h1_simple, newdata = vcs_nooutlier, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_novowels <- update(h1_simple, newdata = vcs_novowels, recompile = TRUE, silent = 2, refresh = 0)
+
+h1_simple_formants <- update(h1_simple, newdata = vcs, formula = . ~ . - pf + f1 + f2 + f3 + f4, recompile = TRUE, silent = 2, refresh = 0)
+
+
+list(`Preregistered` = h1_simple,
+     `Standardized within` = h1_simple_within,
+     `No outliers` = h1_simple_nooutlier,
+     `No vowels` = h1_simple_novowels) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(!term %in% c("(Intercept)"),
+         !term %in% c("sd__(Intercept)"),
+         !term %in% c("sd__Observation")
+         ) %>% 
+  ggplot(aes(x = Specification, y = estimate, ymin = conf.low, ymax = conf.high)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  facet_wrap(~ term) +
+  coord_flip()
+
+list(`Preregistered` = h1_simple,
+     `Single formants` = h1_simple_formants) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(term %in% c("pf", "f1", "f2", "f3", "f4")) %>% 
+  ggplot(aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high, color = Specification)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  coord_flip()
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_simple_within)
+summary(h1_simple_nooutlier)
+summary(h1_simple_novowels)
+summary(h1_simple_formants)
+```
+
+</details>
+
+
+## Check Hypothesis 2:  Extraversion
+
+Participants with lower voice pitch will score higher on extraversion
+
+__Interpretation:__ Little difference across dataset specifications (whether standardized globally, within dataset, whether outliers or vowel-based data were omitted). No clear effect of individual formants (f1-f4).
+
+### Models
+```{r}
+h1_simple <- brm(extra ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/extra/h1_simple")
+
+
+h1_simple_within <- update(h1_simple, newdata = vcs_within, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_nooutlier <- update(h1_simple, newdata = vcs_nooutlier, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_novowels <- update(h1_simple, newdata = vcs_novowels, recompile = TRUE, silent = 2, refresh = 0)
+
+h1_simple_formants <- update(h1_simple, newdata = vcs, formula = . ~ . - pf + f1 + f2 + f3 + f4, recompile = TRUE, silent = 2, refresh = 0)
+
+
+list(`Preregistered` = h1_simple,
+     `Standardized within` = h1_simple_within,
+     `No outliers` = h1_simple_nooutlier,
+     `No vowels` = h1_simple_novowels) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(!term %in% c("(Intercept)"),
+         !term %in% c("sd__(Intercept)"),
+         !term %in% c("sd__Observation")
+         ) %>% 
+  ggplot(aes(x = Specification, y = estimate, ymin = conf.low, ymax = conf.high)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  facet_wrap(~ term) +
+  coord_flip()
+
+list(`Preregistered` = h1_simple,
+     `Single formants` = h1_simple_formants) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(term %in% c("pf", "f1", "f2", "f3", "f4")) %>% 
+  ggplot(aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high, color = Specification)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  coord_flip()
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_simple_within)
+summary(h1_simple_nooutlier)
+summary(h1_simple_novowels)
+summary(h1_simple_formants)
+```
+
+</details>
+
+
+## Check Hypothesis 3: Agreeableness
+
+Participants with lower voice pitch will score higher on agreeableness.
+
+
+__Interpretation:__ Little difference across dataset specifications (whether standardized globally, within dataset, whether outliers or vowel-based data were omitted). No clear effect of individual formants f1, f2, f4, the 95% CI for f3 nominally excludes zero.
+
+### Models
+```{r}
+h1_simple <- brm(agree ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/agree/h1_simple")
+
+
+h1_simple_within <- update(h1_simple, newdata = vcs_within, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_nooutlier <- update(h1_simple, newdata = vcs_nooutlier, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_novowels <- update(h1_simple, newdata = vcs_novowels, recompile = TRUE, silent = 2, refresh = 0)
+
+h1_simple_formants <- update(h1_simple, newdata = vcs, formula = . ~ . - pf + f1 + f2 + f3 + f4, recompile = TRUE, silent = 2, refresh = 0)
+
+
+list(`Preregistered` = h1_simple,
+     `Standardized within` = h1_simple_within,
+     `No outliers` = h1_simple_nooutlier,
+     `No vowels` = h1_simple_novowels) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(!term %in% c("(Intercept)"),
+         !term %in% c("sd__(Intercept)"),
+         !term %in% c("sd__Observation")
+         ) %>% 
+  ggplot(aes(x = Specification, y = estimate, ymin = conf.low, ymax = conf.high)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  facet_wrap(~ term) +
+  coord_flip()
+
+list(`Preregistered` = h1_simple,
+     `Single formants` = h1_simple_formants) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(term %in% c("pf", "f1", "f2", "f3", "f4")) %>% 
+  ggplot(aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high, color = Specification)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  coord_flip()
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_simple_within)
+summary(h1_simple_nooutlier)
+summary(h1_simple_novowels)
+summary(h1_simple_formants)
+```
+
+</details>
+
+
+## Check Hypothesis 4: SOI-R behavior
+Participants with lower voice pitch will report having a more unrestricted sociosexual behavior.
+
+__Interpretation:__ Little difference across dataset specifications (whether standardized globally, within dataset, whether outliers or vowel-based data were omitted). No clear effect of individual formants (f1-f4).
+
+### Models
+```{r}
+h1_simple <- brm(behavior ~ f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/behavior/h1_simple")
+
+
+h1_simple_within <- update(h1_simple, newdata = vcs_within, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_nooutlier <- update(h1_simple, newdata = vcs_nooutlier, recompile = TRUE, silent = 2, refresh = 0)
+h1_simple_novowels <- update(h1_simple, newdata = vcs_novowels, recompile = TRUE, silent = 2, refresh = 0)
+
+h1_simple_formants <- update(h1_simple, newdata = vcs, formula = . ~ . - pf + f1 + f2 + f3 + f4, recompile = TRUE, silent = 2, refresh = 0)
+
+
+list(`Preregistered` = h1_simple,
+     `Standardized within` = h1_simple_within,
+     `No outliers` = h1_simple_nooutlier,
+     `No vowels` = h1_simple_novowels) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(!term %in% c("(Intercept)"),
+         !term %in% c("sd__(Intercept)"),
+         !term %in% c("sd__Observation")
+         ) %>% 
+  ggplot(aes(x = Specification, y = estimate, ymin = conf.low, ymax = conf.high)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  facet_wrap(~ term) +
+  coord_flip()
+
+list(`Preregistered` = h1_simple,
+     `Single formants` = h1_simple_formants) %>% 
+  map(~ broom.mixed::tidy(., conf.int = T)) %>% 
+  bind_rows(.id = "Specification") %>% 
+  filter(term %in% c("pf", "f1", "f2", "f3", "f4")) %>% 
+  ggplot(aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high, color = Specification)) + 
+  geom_pointrange() +
+  ggrepel::geom_text_repel(aes(label = sprintf("%.2f [%.2f;%.2f]", estimate, conf.low,  conf.high )), nudge_x = 0.15, size = 3) +
+  coord_flip()
+```
+
+<details><summary>Model details</summary>
+
+```{r}
+summary(h1_simple)
+summary(h1_simple_within)
+summary(h1_simple_nooutlier)
+summary(h1_simple_novowels)
+summary(h1_simple_formants)
+```
+
+</details>
+
+
+
+## Extraversion, adjusted for dominance
+```{r}
+extra_adj_for_dominance <- brm(extra ~ dominance + f0 + pf + sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter + 1500, warmup = warmup + 1500, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/extra/extra_adj_for_dominance2")
+extra_adj_for_dominance
+```
+
+## Dominance, adjusted for extraversion
+```{r}
+dominance_adj_for_extra <- brm(dominance ~ extra  + f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/dominance/dominance_adj_for_extra")
+dominance_adj_for_extra
+```
+
+## SOI-R Behavior adj. for extraversion
+```{r}
+behavior_adj_for_extra <- brm(behavior ~ extra  + f0 + pf + sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/behavior/behavior_adj_for_extra")
+behavior_adj_for_extra
+```
+
+
+## Extraversion, separate by sex
+```{r}
+h1_men <- brm(extra ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex == "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/extra/h1_men")
+
+h1_women <- brm(extra ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex != "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/extra/h1_women")
+
+h1_f0bysex <- brm(extra ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/extra/h1_f0bysex")
+
+h1_men
+h1_women
+equivalence_test(h1_f0bysex)
+```
+
+
+## Agreeableness, separate by sex
+```{r}
+h1_men <- brm(agree ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex == "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/agree/h1_men") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_women <- brm(agree ~ f0 + pf + me(age, age_se) + (1 | dataset), data = vcs %>% filter(sex != "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/agree/h1_women") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+
+h1_f0bysex <- brm(agree ~ f0*sex + me(age, age_se) + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/agree/h1_f0bysex")
+h1_men
+h1_women
+equivalence_test(h1_f0bysex)
+```
+
+
+## Dominance, separate by sex
+```{r}
+h1_men <- brm(dominance ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex == "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/dominance/h1_men")
+
+h1_women <- brm(dominance ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex != "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/dominance/h1_women")
+
+h1_f0bysex <- brm(dominance ~ f0*sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", 
+          file = "models/dominance/h1_f0bysex")
+
+
+h1_men
+h1_women
+equivalence_test(h1_f0bysex)
+```
+
+## SOI-R behavior, separate by sex
+```{r}
+h1_men <- brm(behavior ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex == "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/behavior/h1_men") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_women <- brm(behavior ~ f0 + pf + age + (1 | dataset), data = vcs %>% filter(sex != "male"),
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", save_mevars = TRUE, 
+          file = "models/behavior/h1_women") %>% 
+  add_criterion("loo") %>% 
+  add_criterion("bayes_R2") %>% 
+  add_criterion("loo_R2") 
+
+h1_f0bysex <- brm(behavior ~ f0*sex + age + (1 | dataset), data = vcs,
+          iter = iter, warmup = warmup, chains = chains, cores = chains,
+          prior = priors,
+          control = control, file_refit = "on_change", 
+          file = "models/behavior/h1_f0bysex")
+
+h1_men
+h1_women
+equivalence_test(h1_f0bysex)
+```
