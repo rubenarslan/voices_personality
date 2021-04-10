@@ -365,6 +365,7 @@ svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>%
 
 svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>% ungroup() %>% 
   summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
+
 svcs %>% filter(dataset %in% c(2,3, 5, 9)) %>% ungroup() %>% 
   summarise_at(vars(f0:f4), ~broom::tidy(t.test(. ~ sex))$estimate)
 ```
@@ -374,7 +375,11 @@ iv) then we average across f1 to f4 and standardise pf again
 svcs %>% ungroup() %>% 
   summarise_at(vars(f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
 
-svcs <- svcs %>% mutate(pf = scale(f1 + f2 + f3 + f4)[,1])
+svcs <- svcs %>% ungroup() %>% mutate(pf = scale(f1 + f2 + f3 + f4)[,1])
+
+svcs %>% filter(!dataset %in% c(2,3, 5, 9)) %>% 
+  group_by(dataset, sex) %>% 
+  summarise_at(vars(pf, f0:f4), list(mean = ~mean(., na.rm = T), sd = ~sd(., na.rm = T)))
 ```
 
 
@@ -477,7 +482,7 @@ rio::export(svcs, "data_complete_2021_within_zscored.rds")
 ## Outlier removal
 ```{r}
 svcs <- data_complete_all
-svcs <- svcs %>%  group_by(sex) %>% 
+svcs <- svcs %>% # group_by(sex) %>% 
   mutate(pf_threshold_hi = median(pf, na.rm = T) + 2.5 * mad(pf, na.rm = T),
          pf_threshold_lo = median(pf, na.rm = T) - 2.5 * mad(pf, na.rm = T),
          f0_threshold_hi = median(f0, na.rm = T) + 2.5 * mad(f0, na.rm = T),
@@ -504,5 +509,5 @@ psych::describeBy(vcs %>% ungroup() %>% select(sex_c, f0:f4, pf), vcs$dataset)
 
 ### Save data
 ```{r}
-rio::export(vcs, "data_complete_2021_within_zscored_no_outliers.rds")
+rio::export(vcs, "data_complete_2021_zscored_no_outliers.rds")
 ```
