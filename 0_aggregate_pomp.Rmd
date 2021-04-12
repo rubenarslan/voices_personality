@@ -1,5 +1,5 @@
 ---
-title: "Aggrate and compute POMP"
+title: "Aggregate data"
 author: "Ruben Arslan"
 date: "4/9/2021"
 output: 

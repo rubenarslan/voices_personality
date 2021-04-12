@@ -1,7 +1,7 @@
 ---
 title: "Do voices carry valid information about a speaker’s personality?"
 author: "Julia Stern, Christoph Schild, Benedict C. Jones, Lisa M. DeBruine, Amanda Hahn, David A. Puts, Ingo Zettler, Tobias L. Kordsmeyer, David Feinberg, Dan Zamfir, Lars Penke, & Ruben C. Arslan"
-date: "2/7/2020"
+date: "4/10/2021"
 output: html_document
 ---
 
