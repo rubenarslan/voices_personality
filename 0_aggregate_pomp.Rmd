@@ -35,6 +35,10 @@ data_complete_all_raw <- rbind(daten1, daten2, daten3, daten4, daten5, daten6, d
 ## Export raw
 ```{r}
 rio::export(data_complete_all_raw, "data_complete_untrans.rds")
+rio::export(data_complete_all_raw, "datarelease/data_personality_voices_untransformed.rds")
+rio::export(data_complete_all_raw, "datarelease/data_personality_voices_untransformed.sav")
+rio::export(data_complete_all_raw, "datarelease/data_personality_voices_untransformed.xlsx")
+rio::export(data_complete_all_raw, "datarelease/data_personality_voices_untransformed.csv")
 ```
 
 ## Compute POMP (percentage of maximum possible)
@@ -292,6 +296,11 @@ data_complete_all %>% select(extra, agree, neuro, openn, consc, behavior, attitu
 ### Save data
 ```{r}
 rio::export(data_complete_all, "data_complete_2021_zscored.rds")
+
+rio::export(data_complete_all, "datarelease/data_personality_voices_zscored.rds")
+rio::export(data_complete_all, "datarelease/data_personality_voices_zscored.sav")
+rio::export(data_complete_all, "datarelease/data_personality_voices_zscored.xlsx")
+rio::export(data_complete_all, "datarelease/data_personality_voices_zscored.csv")
 ```
 
 

@@ -21,7 +21,7 @@ library(r2d3)
 ## Voice pitch and formants
 ```{r echo=F,message=F}
 library(tidyverse)
-author_voices <- rio::import("author_voices/measures.xlsx")
+author_voices <- rio::import("author_voices/acoustics-all.xlsx")
 vcs <- rio::import("data_complete_2021_unstd_pomp.rds")
 
 author_voices <- author_voices %>%
@@ -32,15 +32,25 @@ author_voices <- author_voices %>%
          f4 = (f4 - mean(vcs$f4,na.rm=T))/sd(vcs$f4,na.rm=T),
          pf = (f1+f2+f3+f4)/4,
          pf = (pf - mean(vcs$pf,na.rm=T))/sd(vcs$pf,na.rm=T),
-         author = recode(Filename, "Lars.wav" = "LP",
-                         "Davef" = "DF",
-                         "christoph" = "CS",
-                         "ruben" = "RCA",
+         author = recode(Filename, "Lars" = "LP",
+                         "DaveF" = "DF",
+                         "DaveP" = "DAP",
+                         "Christoph" = "CS",
+                         "Ruben" = "RCA",
                          "Julia" = "JS",
-                         "amanda.wav" = "AH"),
+                         "Amanda" = "AH",
+                         "Ingo" = "IZ",
+                         "Lars" = "LP",
+                         "Tobi" = "TLK"),
+         Filename = paste0(Filename, ".wav"),
         pf_pos = pf + case_when(author == "RCA" ~ 0,
                                 author == "CS" ~ 0,
                                 TRUE ~ 0))
+
+ # for(i in 1:nrow(author_voices)) {
+ #   av::av_audio_convert(paste0("author_voices/", author_voices$Filename[i], ".wav"),
+ #                        paste0("author_voices/", author_voices$author[i], ".mp3"))
+ # }
 ```
 
 To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U". The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).
