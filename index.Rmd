@@ -53,7 +53,11 @@ author_voices <- author_voices %>%
  # }
 ```
 
-To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us speak the letters "A-E-I-O-U". The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).
+To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us read part of the _rainbow passage_. The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).
+
+<details><summary>The rainbow passage</summary>
+When the sunlight strikes raindrops in the air, they act like a prism and form a rainbow. The rainbow is a division of white light into many beautiful colors. These take the shape of a long round arch, with its path high above, and its two ends apparently beyond the horizon. There is, according to legend, a boiling pot of gold at one end. People look but no one ever finds it. When a man looks for something beyond his reach, his friends say he is looking for the pot of gold at the end of the rainbow.
+</details>
 
 ```{r echo=F}
 vcs <- rio::import("data_complete_2021_zscored_no_outliers.rds")
