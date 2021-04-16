@@ -43,8 +43,8 @@ author_voices <- author_voices %>%
                          "Lars" = "LP",
                          "Tobi" = "TLK"),
          Filename = paste0(Filename, ".wav"),
-        pf_pos = pf + case_when(author == "RCA" ~ 0,
-                                author == "CS" ~ 0,
+        pf_pos = pf + case_when(author == "RCA" ~ -0.07,
+                                author == "DAP" ~ +0.07,
                                 TRUE ~ 0))
 
  # for(i in 1:nrow(author_voices)) {
