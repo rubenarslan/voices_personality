@@ -38,6 +38,7 @@ author_voices <- author_voices %>%
                          "Christoph" = "CS",
                          "Ruben" = "RCA",
                          "Julia" = "JS",
+                         "Lisa" = "LMD",
                          "Amanda" = "AH",
                          "Ingo" = "IZ",
                          "Lars" = "LP",
@@ -46,11 +47,12 @@ author_voices <- author_voices %>%
         pf_pos = pf + case_when(author == "RCA" ~ -0.07,
                                 author == "DAP" ~ +0.07,
                                 TRUE ~ 0))
-
- # for(i in 1:nrow(author_voices)) {
- #   av::av_audio_convert(paste0("author_voices/", author_voices$Filename[i], ".wav"),
- #                        paste0("author_voices/", author_voices$author[i], ".mp3"))
- # }
+# author_voices
+#  for(i in 1:nrow(author_voices)) {
+#    cat(author_voices$Filename[i], author_voices$author[i])
+#    av::av_audio_convert(paste0("author_voices/", author_voices$Filename[i]),
+#                         paste0("author_voices/", author_voices$author[i], ".mp3"))
+#  }
 ```
 
 To hear different voice pitches and formants, click the initials of the authors of our study below. You'll hear each of us read part of the _rainbow passage_. The big, clickable dots show the authors; they are superimposed on the data used in this study (men coloured in black, women coloured in blue).

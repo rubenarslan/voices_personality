@@ -100,9 +100,25 @@ svg.append("text")
                 return y(d.pf_pos - 0.05);
             });
 
+window.player = {};
 
 var click = function(d) {
-  new Audio('author_voices/' + d.author + '.mp3').play()
+  if(window.player[d.author] === undefined) {
+    window.player[d.author] = new Audio('author_voices/' + d.author + '.mp3');
+  }
+  var aud = window.player[d.author]
+
+  if(aud.paused) {
+    dot =     d3.select(this)
+    debugger;
+    d3.select(this.firstChild)
+      .attr("r", 6)
+    aud.play()
+  } else {
+    d3.select(this.firstChild)
+      .attr("r", 4)
+    aud.pause()
+  }
 };
 
 var mouseover = function(d) {
